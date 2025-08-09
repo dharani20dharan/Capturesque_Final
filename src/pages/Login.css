@@ -1,0 +1,143 @@
+/* Basic container setup for centering the form */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #efa106, #e8d909); 
+    animation: fadeInBackground 2s ease-out; /* Animation for background */
+}
+
+/* Fade in background animation */
+@keyframes fadeInBackground {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.login-container form {
+    background: linear-gradient(45deg, #fdfd96, #f5c700);  /* Light background for better contrast */
+    padding: 40px; /* Increase padding for a more spacious layout */
+    border-radius: 12px; /* Softer rounded corners */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1); /* Stronger shadow for a floating effect */
+    width: 100%;
+    max-width: 420px; /* Slightly larger max-width for a balanced design */
+    margin: 0 auto; /* Center the form on the page */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Clean modern font */
+    color: #333; /* Dark text for better readability */
+    animation: slideIn 1s ease-out; /* Form slide-in effect */
+}
+
+/* Slide-in animation */
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Title of the form */
+.login-container h2 {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #060606;
+    animation: fadeInText 1s ease-out; /* Animation for title */
+}
+
+/* Fade-in effect for title */
+@keyframes fadeInText {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Label for input fields */
+.login-container label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #040404;
+}
+
+/* Input field styling */
+.login-container input[type="email"],
+.login-container input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    color: #333;
+    transition: all 0.3s ease; /* Smooth transition for inputs */
+}
+
+/* Focus effect for inputs */
+.login-container input[type="email"]:focus,
+.login-container input[type="password"]:focus {
+    border-color: #007bff;
+    outline: none;
+    transform: scale(1.05); /* Slight grow effect */
+}
+
+/* Submit button styling */
+.login-container button {
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s ease; /* Transition for button */
+}
+
+/* Button hover effect */
+.login-container button:hover {
+    background-color: #0056b3;
+    transform: translateY(-3px); /* Hover lift effect */
+}
+
+/* Style for error message or other messages */
+.login-container .alert {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+    text-align: center;
+    animation: fadeInMessage 1s ease-out; /* Animation for error message */
+}
+
+/* Style for successful messages */
+.login-container .success {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+    text-align: center;
+    animation: fadeInMessage 1s ease-out; /* Animation for success message */
+}
+
+/* Fade-in animation for messages */
+@keyframes fadeInMessage {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
