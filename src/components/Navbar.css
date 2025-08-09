@@ -1,0 +1,446 @@
+/* --- CSS Variables --- */
+:root {
+  /* Color Palette */
+  --clr-primary: #f57c00;       /* Rich Amber */
+  --clr-primary-light: #ff9800; /* Lighter Amber */
+  --clr-secondary: #263238;    /* Dark Slate Grey */
+  --clr-secondary-light: #37474f;/* Lighter Slate */
+  --clr-text-light: #ffffff;    /* White */
+  --clr-text-dark: #212121;     /* Almost Black */
+  --clr-text-muted: #cfd8dc;    /* Light Grey */
+  --clr-border-light: rgba(255, 255, 255, 0.2);
+  --clr-border-dark: rgba(0, 0, 0, 0.1);
+  --clr-shadow: rgba(0, 0, 0, 0.15);
+  --clr-focus-ring: #64b5f6; /* Light blue for focus */
+
+  /* Layout & Sizing */
+  --navbar-height: 70px;
+  --navbar-height-mobile: 60px;
+  --bottom-nav-height-mobile: 55px;
+  --container-max-width: 1200px;
+  --border-radius: 6px;
+
+  /* Transitions */
+  --transition-fast: 0.2s ease-in-out;
+  --transition-base: 0.3s ease;
+
+  /* Gallery Theme (can be kept separate or integrated) */
+  --gallery-bg: var(--clr-secondary);
+  /* ... other gallery variables */
+}
+
+/* --- Global Reset & Body --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--clr-text-light); /* Or a light grey */
+  color: var(--clr-text-dark);
+  /* Add padding top for fixed navbar */
+  padding-top: var(--navbar-height);
+  /* Remove bottom padding initially, add via media query */
+}
+
+/* --- Navbar Container --- */
+.navbar {
+  background: linear-gradient(135deg, var(--clr-primary), var(--clr-secondary));
+  color: var(--clr-text-light);
+  height: var(--navbar-height);
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  box-shadow: 0 4px 12px var(--clr-shadow);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+}
+
+/* --- Logo --- */
+.navbar-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--clr-text-light);
+  flex-shrink: 0; /* Prevent logo from shrinking */
+  outline: none; /* Remove default outline */
+}
+.navbar-logo-link:focus-visible { /* Style focus state */
+  outline: 2px solid var(--clr-focus-ring);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+.logo {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-right: 10px;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  border: 2px solid var(--clr-text-light);
+}
+
+.navbar-logo-link:hover .logo {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Navigation Links (Desktop) --- */
+.navbar-links {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.navbar-links ul {
+  display: flex;
+  list-style: none;
+}
+
+.navbar-links ul li {
+  margin: 0 15px;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--clr-text-light);
+  font-size: 16px; /* Slightly smaller for balance */
+  font-weight: 500; /* Normal weight, active gets bolder */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 4px;
+  transition: color var(--transition-base), border-color var(--transition-base);
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--border-radius); /* For focus outline */
+  outline: none;
+}
+.nav-link:focus-visible {
+  outline: 2px solid var(--clr-focus-ring);
+  outline-offset: 2px;
+}
+
+.nav-link .link-icon {
+  display: none; /* Hide icon on desktop */
+  margin-right: 8px;
+}
+
+.nav-link .link-text {
+  display: inline;
+}
+
+/* Underline effect */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; /* Position slightly below */
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--clr-text-light);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--transition-base);
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--clr-text-light); /* Ensure color stays light on hover */
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  transform: scaleX(1);
+}
+
+.nav-link.active {
+  font-weight: 700; /* Bold active link */
+}
+
+/* --- Login Link (Desktop) --- */
+.login-link {
+  padding: 8px 15px;
+  border: 1px solid var(--clr-text-light);
+  border-radius: var(--border-radius);
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+.login-link:hover {
+  background-color: var(--clr-text-light);
+  color: var(--clr-secondary);
+}
+
+.login-link::after {
+  display: none; /* No underline for button-like link */
+}
+
+/* --- Profile Icon & Dropdown --- */
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0; /* Prevent actions area from shrinking */
+}
+
+.profile-dropdown {
+  position: relative;
+  margin-left: 20px;
+}
+
+.profile-trigger {
+  background: none;
+  border: none;
+  padding: 5px; /* Add some padding for easier clicking */
+  margin: -5px; /* Counteract padding to maintain layout */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: 50%; /* For focus outline */
+  outline: none;
+}
+.profile-trigger:focus-visible {
+  outline: 2px solid var(--clr-focus-ring);
+  outline-offset: 2px;
+}
+
+
+.user-icon {
+  font-size: 30px;
+  color: var(--clr-text-light);
+  transition: color var(--transition-base), transform var(--transition-base);
+  display: block; /* Prevents potential inline spacing issues */
+}
+
+.profile-trigger:hover .user-icon {
+  color: #eeeeee; /* Slightly lighter */
+  transform: scale(1.1);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px); /* Space between icon and menu */
+  right: 0;
+  background: var(--clr-text-light);
+  border-radius: var(--border-radius);
+  min-width: 180px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  padding: 8px 0; /* Vertical padding for the menu */
+  list-style: none;
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity var(--transition-fast), transform var(--transition-fast), visibility var(--transition-fast);
+  z-index: 1100;
+}
+
+/* Show dropdown when .open class is present */
+.profile-dropdown.open .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-menu li { /* Remove role=none styling if needed, but li itself has no role here */
+    /* No special styling needed for li itself typically */
+}
+
+.dropdown-menu li a,
+.dropdown-menu li button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px; /* Consistent padding */
+  text-decoration: none;
+  color: var(--clr-text-dark);
+  font-size: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  outline: none;
+  border-radius: 0; /* Ensure buttons don't have default radius */
+}
+.dropdown-menu li a:focus-visible,
+.dropdown-menu li button:focus-visible {
+   background-color: #eeeeee;
+   color: var(--clr-secondary);
+   outline: 1px dashed var(--clr-secondary); /* Simple focus indicator inside */
+   outline-offset: -1px;
+}
+
+.dropdown-menu li a:hover,
+.dropdown-menu li button:hover {
+  background-color: #eeeeee; /* Light grey hover */
+  color: var(--clr-secondary);
+}
+
+.logout-button svg {
+  font-size: 1.1em;
+  margin-top: 1px; /* Minor alignment tweak */
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+  body {
+    /* Add padding for fixed bottom nav */
+    padding-bottom: var(--bottom-nav-height-mobile);
+    /* Adjust top padding if navbar height changes */
+    padding-top: var(--navbar-height-mobile);
+  }
+
+  .navbar {
+    height: var(--navbar-height-mobile);
+    padding: 0 15px;
+  }
+
+  .logo {
+    width: 40px;
+    height: 40px;
+    margin-right: 0;
+    border-width: 1px;
+  }
+
+  /* Hide desktop nav text, show icons */
+  .nav-link .link-text {
+    display: none;
+  }
+
+  .nav-link .link-icon {
+    display: block;
+    font-size: 22px; /* Slightly smaller icon size */
+    margin: 0;
+  }
+
+  /* --- Bottom Navigation Bar --- */
+  .navbar-links {
+    order: 3; /* Move nav to the end visually */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--clr-secondary); /* Use a dark background */
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+    height: var(--bottom-nav-height-mobile);
+    z-index: 999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-top: 1px solid var(--clr-primary);
+  }
+
+  .navbar-links ul {
+    justify-content: space-around; /* Distribute items evenly */
+    width: 100%;
+    height: 100%;
+    align-items: center;
+  }
+
+  .navbar-links ul li {
+    margin: 0; /* Remove horizontal margins */
+    height: 100%;
+    display: flex; /* Needed for centering */
+    flex-grow: 1; /* Make items share space */
+    justify-content: center; /* Center content horizontally */
+    align-items: center; /* Center content vertically */
+  }
+
+  .nav-link {
+    padding: 0; /* Remove padding, rely on flex alignment */
+    width: 100%; /* Take full width of li */
+    height: 100%; /* Take full height of li */
+    justify-content: center;
+    color: var(--clr-text-muted); /* Muted color for inactive icons */
+    transition: color var(--transition-fast), transform var(--transition-fast);
+    border-radius: 0; /* Remove border-radius */
+  }
+  .nav-link:focus-visible { /* Adjust focus for bottom nav */
+     outline: none;
+     background-color: rgba(255, 255, 255, 0.1); /* Subtle background highlight */
+  }
+
+  .nav-link::after {
+    display: none; /* No underline on mobile */
+  }
+
+  /* Style active mobile link */
+  .nav-link.active {
+     font-weight: normal; /* Reset font weight */
+  }
+
+  .nav-link.active .link-icon {
+    color: var(--clr-primary); /* Use primary color for active icon */
+    transform: scale(1.15); /* Slightly larger active icon */
+  }
+
+  /* Hover effect for mobile (primarily for mouse users on devices that support it) */
+  .nav-link:hover .link-icon {
+    color: var(--clr-text-light); /* Lighten on hover */
+  }
+  .nav-link.active:hover .link-icon {
+    color: var(--clr-primary-light); /* Brighter primary on hover when active */
+  }
+
+
+  /* --- Mobile Login / Profile --- */
+  .login-link .link-text {
+    display: none;
+  }
+  .login-link .link-icon {
+    display: block;
+    font-size: 24px;
+    margin: 0;
+  }
+  .login-link {
+    padding: 5px;
+    border: none;
+    background: none;
+    color: var(--clr-text-light); /* Ensure icon is visible */
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+  .login-link:hover {
+    background-color: transparent;
+    color: #eee; /* Slightly lighter on hover */
+    transform: scale(1.1);
+  }
+  .login-link:focus-visible { /* Focus style for mobile login icon */
+      outline: 2px solid var(--clr-focus-ring);
+      outline-offset: 1px;
+      border-radius: var(--border-radius);
+   }
+
+  .profile-dropdown {
+    margin-left: 10px;
+  }
+  .user-icon {
+    font-size: 28px;
+  }
+  .profile-trigger {
+     padding: 4px; /* Adjust padding slightly */
+     margin: -4px;
+  }
+
+  /* Adjust dropdown position relative to smaller header */
+  .dropdown-menu {
+    top: calc(100% + 5px);
+  }
+}
