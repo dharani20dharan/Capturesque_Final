@@ -1,0 +1,268 @@
+/* --- Base Variables (Consider defining globally if not already) --- */
+:root {
+  --primary-color: #ff9800; /* Vibrant Orange */
+  --secondary-color: #d35400; /* Darker Orange */
+  --text-light: #ffffff;
+  --text-dark: #333333;
+  --text-muted-light: #f0f0f0; /* Lighter muted text */
+  --border-radius: 8px;
+}
+
+/* --- Hero Section General --- */
+.hero {
+  height: 100vh; /* Full viewport height */
+  min-height: 600px; /* Minimum height for content visibility */
+  color: var(--text-light);
+  position: relative; /* For positioning overlay and content */
+  display: flex; /* Use flex for centering content container */
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* Prevent content overflow */
+  text-align: center; /* Center align text for mobile */
+}
+
+/* --- Background Image Layer --- */
+.hero-background-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+   /* *** IMPORTANT: Use a relative path from your PUBLIC folder *** */
+   /* Example: place bg.jpg in public/images/ */
+  background: url('src/Assets/bg.jpg') center center/cover no-repeat;
+  /* Subtle animation: slow zoom (Ken Burns effect) */
+  animation: kenBurns 25s infinite alternate ease-in-out;
+  z-index: 1;
+}
+
+/* Ken Burns Animation */
+@keyframes kenBurns {
+  0% {
+    transform: scale(1.05); /* Start slightly zoomed in */
+  }
+  100% {
+    transform: scale(1); /* Zoom out */
+  }
+}
+
+/* --- Gradient Overlay --- */
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Darker gradient for better text contrast, adjust as needed */
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+  z-index: 2; /* Above background, below content */
+}
+
+/* --- Content Container --- */
+.hero-content-container {
+  position: relative; /* Position above overlay */
+  z-index: 3;
+  display: flex;
+  flex-direction: column; /* Default stack layout */
+  align-items: center; /* Center items horizontally */
+  justify-content: center; /* Center items vertically (within flex alignment) */
+  width: 90%; /* Max width on small screens */
+  max-width: 1200px; /* Max width on large screens */
+  padding: 40px 20px;
+  gap: 40px; /* Space between text content and image area */
+}
+
+
+/* --- Text Content Styling --- */
+.hero-content {
+  flex-basis: 50%; /* Allow text to take up space */
+  text-align: center; /* Center text within its block */
+  animation: fadeInUp 1s ease-out forwards; /* Simple fade up */
+  opacity: 0; /* Start hidden for animation */
+}
+
+@keyframes fadeInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.hero-content h1 {
+  font-size: clamp(2.5rem, 6vw, 4rem); /* Responsive font size */
+  font-weight: 700; /* Bold but not overly heavy */
+  margin-bottom: 15px;
+  line-height: 1.2;
+  letter-spacing: -1px; /* Slightly tighter spacing */
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5); /* Subtle text shadow */
+}
+
+.hero-content p {
+  font-size: clamp(1rem, 2.5vw, 1.3rem); /* Responsive font size */
+  margin-bottom: 30px;
+  line-height: 1.6;
+  color: var(--text-muted-light); /* Slightly muted text */
+  max-width: 600px; /* Prevent paragraph from becoming too wide */
+  margin-left: auto;
+  margin-right: auto;
+  animation: fadeInUp 1s ease-out 0.3s forwards; /* Delayed fade up */
+  opacity: 0; /* Start hidden */
+}
+
+/* --- Call to Action Button --- */
+.btn-explore {
+  padding: 14px 35px; /* Slightly larger padding */
+  background: var(--primary-color); /* Use theme color */
+  color: var(--text-dark); /* Dark text on light button */
+  text-decoration: none;
+  font-size: clamp(1rem, 2vw, 1.1rem); /* Responsive font size */
+  font-weight: 600;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  display: inline-block; /* Needed for transform and margin */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  animation: fadeInUp 1s ease-out 0.6s forwards; /* Delayed fade up */
+  opacity: 0; /* Start hidden */
+}
+
+.btn-explore:hover {
+  background-color: var(--secondary-color); /* Darker shade on hover */
+  color: var(--text-light); /* Light text on dark hover */
+  transform: translateY(-4px) scale(1.02); /* Lift and slightly scale */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* --- Image Container & Slideshow --- */
+.hero-image-container {
+  flex-basis: 45%; /* Allow image area to take space */
+  max-width: 450px; /* Max width for the image */
+  width: 100%; /* Take full width within its flex basis */
+  aspect-ratio: 4 / 3; /* Maintain aspect ratio */
+  position: relative; /* For positioning images inside */
+  animation: fadeInScaleUp 1.2s ease-out 0.5s forwards; /* Fade in effect */
+  opacity: 0; /* Start hidden */
+}
+
+@keyframes fadeInScaleUp {
+  from {
+      opacity: 0;
+      transform: scale(0.95);
+  }
+  to {
+      opacity: 1;
+      transform: scale(1);
+  }
+}
+
+
+.hero-slideshow {
+  width: 100%;
+  height: 100%;
+  position: relative; /* Contain absolutely positioned images */
+  border-radius: var(--border-radius);
+  overflow: hidden; /* Clip images to the container */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.hero-slide-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Cover the container */
+  opacity: 0; /* Hidden by default */
+  transition: opacity 1s ease-in-out; /* Smooth fade transition - MATCH JS TIMEOUT */
+  border-radius: var(--border-radius); /* Match container rounding */
+}
+
+.hero-slide-image.fade-in {
+  opacity: 1; /* Active image is visible */
+}
+
+.hero-slide-image.fade-out {
+  opacity: 0; /* Fading out image */
+}
+
+.hero-slide-image.preload {
+    /* Styles for the preloaded next image - essentially hidden */
+    opacity: 0;
+    z-index: -1; /* Ensure it's behind the active image */
+}
+
+
+/* --- Loading and Error States --- */
+.hero-loader,
+.hero-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%; /* Fill the image container space */
+  font-size: 1.1rem;
+  background-color: rgba(0, 0, 0, 0.3); /* Subtle background */
+  border-radius: var(--border-radius);
+  color: var(--text-muted-light);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.hero-error {
+  color: #ffdddd; /* Light red for errors */
+  font-weight: 500;
+}
+
+
+/* --- Responsive Design Adjustments --- */
+@media (min-width: 769px) {
+  .hero {
+    text-align: left; /* Align text left on larger screens */
+  }
+  .hero-content-container {
+      flex-direction: row; /* Side-by-side layout */
+      justify-content: space-between; /* Space between text and image */
+      align-items: center; /* Vertically align items in the row */
+  }
+  .hero-content {
+      text-align: left; /* Align text left */
+      margin-left: 0; /* Reset mobile margins */
+      margin-right: 0;
+  }
+   .hero-content p {
+      margin-left: 0;
+      margin-right: 0;
+   }
+}
+
+
+@media (max-width: 768px) {
+  .hero {
+    min-height: 700px; /* Ensure enough height on mobile */
+  }
+  .hero-content-container {
+      padding: 30px 15px; /* Reduce padding */
+      gap: 30px; /* Reduce gap */
+  }
+  .hero-content h1 {
+      letter-spacing: normal; /* Normal spacing on mobile */
+  }
+  .hero-image-container {
+     max-width: 80%; /* Allow image to be slightly wider */
+     aspect-ratio: 16/9; /* Potentially wider aspect ratio on mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-explore {
+      padding: 12px 25px; /* Smaller button on very small screens */
+      width: 80%; /* Make button wider */
+  }
+  .hero-image-container {
+      aspect-ratio: 1/1; /* Square aspect ratio maybe */
+   }
+}
