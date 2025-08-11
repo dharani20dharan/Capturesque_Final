@@ -1,0 +1,376 @@
+/* --- Base Variables (Consider defining globally) --- */
+:root {
+  --featured-bg-color: #1a1a1a; /* Dark background */
+  --featured-overlay-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+  --featured-accent-color: #ff8c00; /* Darker Orange/Amber */
+  --featured-accent-hover: #ffa500; /* Lighter orange for hover */
+  --text-light: #f0f0f0;
+  --text-medium: #cccccc;
+  --text-dark-on-accent: #111111;
+  --border-color-light: rgba(255, 255, 255, 0.2);
+  --border-radius-medium: 8px;
+  --border-radius-large: 15px; /* For image */
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+/* --- Section Styling --- */
+.featured-photos {
+  background-color: var(--featured-bg-color); /* Fallback color */
+  color: var(--text-light);
+  padding: 60px 20px;
+  position: relative;
+  overflow: hidden;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Background Image & Overlay */
+.featured-photos::before { /* Use pseudo-element for background */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* *** IMPORTANT: Use a relative path from your PUBLIC folder *** */
+  background: url('C:\Users\DHARANIDHARAN\Desktop\SNU\Additional\WebDev\Project1\Beta\PROJECT_2 (2)\PROJECT_2\capturesque_beta\src\Assets/bg3.jpg') no-repeat center center/cover;
+  z-index: 1;
+  filter: brightness(0.7); /* Adjust brightness */
+}
+
+.featured-photos-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(10, 10, 10, 0.8), rgba(10, 10, 10, 0.9));
+  z-index: 2;
+}
+
+/* Content container */
+.featured-photos-content {
+  position: relative; /* Above overlays */
+  z-index: 3;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.featured-photos h2 {
+  font-family: 'Poppins', sans-serif; /* Cleaner font */
+  font-size: clamp(2.2rem, 5vw, 3rem);
+  margin-bottom: 30px;
+  color: var(--featured-accent-color);
+  font-weight: 600;
+  text-shadow: 1px 1px 5px var(--shadow-color);
+}
+
+/* --- Categories Styling --- */
+.categories {
+  margin-bottom: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.category-btn {
+  background: transparent;
+  color: var(--text-medium);
+  border: 1px solid var(--border-color-light);
+  padding: 10px 25px;
+  border-radius: 30px; /* Pill shape */
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: capitalize; /* Display categories nicely */
+}
+
+.category-btn:hover:not(:disabled) {
+  background-color: rgba(255, 140, 0, 0.1);
+  border-color: var(--featured-accent-hover);
+  color: var(--featured-accent-hover);
+}
+
+.category-btn.active {
+  background-color: var(--featured-accent-color);
+  border-color: var(--featured-accent-color);
+  color: var(--text-dark-on-accent);
+  font-weight: 600;
+  box-shadow: 0 3px 10px rgba(255, 140, 0, 0.3);
+}
+
+.category-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Error Text for Categories (if shown) */
+.error-text {
+   color: #ff8a8a;
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+   margin-top: 10px; /* Space it from buttons if needed */
+   width: 100%; /* Take full width if needed */
+   justify-content: center;
+   font-style: italic;
+}
+
+
+/* --- Carousel Styling --- */
+.carousel-container {
+  width: 100%;
+  max-width: 700px; /* Adjust max width as needed */
+  margin: 0 auto;
+  min-height: 400px; /* Ensure space for messages/loader */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* The main carousel div holding buttons and wrapper */
+.carousel {
+  width: 100%;
+  position: relative; /* Contains buttons and dots */
+  display: flex; /* Center photo wrapper if it's smaller */
+  align-items: center;
+  justify-content: center;
+}
+
+/* Wrapper around the actual photo+category element */
+.photo-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 10; /* Maintain aspect ratio */
+  overflow: hidden;
+  border-radius: var(--border-radius-large); /* Use large radius */
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.05); /* Placeholder bg */
+  box-shadow: 0 8px 25px var(--shadow-color);
+}
+
+/* The div containing the image and category text */
+.photo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Apply transition to the container */
+  transition: opacity 0.5s ease-in-out;
+}
+
+.photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Cover the wrapper */
+  border-radius: var(--border-radius-large); /* Match wrapper */
+  user-select: none;
+}
+
+/* Category text overlayed on the photo */
+.photo-category {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: var(--featured-accent-hover);
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  z-index: 5; /* Above image */
+  opacity: 0; /* Fade in with photo */
+  transition: opacity 0.4s ease 0.2s; /* Delayed fade in */
+}
+/* Show category when photo is visible */
+.photo.fade-in .photo-category {
+   opacity: 1;
+}
+
+
+/* Animation Classes for the .photo div */
+.fade-in {
+  opacity: 1;
+  z-index: 1; /* Bring active photo to front */
+}
+
+.fade-out {
+  opacity: 0;
+  z-index: 0; /* Send fading photo to back */
+}
+
+/* Carousel Buttons (Prev/Next) */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.8rem; /* Icon size */
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+  z-index: 10; /* Above photo */
+  transition: all 0.3s ease;
+  opacity: 0; /* Hidden by default */
+}
+
+/* Show buttons on carousel container hover */
+.carousel-container:hover .carousel-btn {
+   opacity: 1;
+}
+
+.carousel-btn:hover:not(:disabled) {
+  background: var(--featured-accent-color);
+  color: var(--text-dark-on-accent);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-btn:disabled {
+  opacity: 0.3 !important;
+  cursor: default;
+}
+
+.carousel-btn.prev {
+  left: 15px;
+}
+
+.carousel-btn.next {
+  right: 15px;
+}
+
+/* Styling for the error message shown when filteredPhotos is empty */
+.carousel-message.error {
+  color: #ffaeae;
+  font-size: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 20px;
+  border-radius: var(--border-radius-medium);
+  background-color: rgba(255, 0, 0, 0.1);
+  width: 100%;
+  min-height: 200px; /* Ensure visibility */
+  font-style: italic;
+}
+
+/* Carousel Dots (Optional) */
+.carousel-dots {
+  position: absolute;
+  bottom: -30px; /* Position below the photo wrapper */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 5; /* Ensure dots are clickable */
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.4);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.dot:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.dot.active {
+  background-color: var(--featured-accent-color);
+  transform: scale(1.2);
+}
+
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+  .featured-photos {
+      padding: 40px 15px;
+  }
+  .categories {
+      gap: 8px;
+      margin-bottom: 30px;
+  }
+  .category-btn {
+      padding: 8px 18px;
+      font-size: 0.9rem;
+  }
+  .carousel-container {
+      max-width: 95%;
+      min-height: 300px;
+  }
+  .carousel-btn {
+    opacity: 1; /* Always visible on touch devices */
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .carousel-btn.prev { left: 10px; }
+  .carousel-btn.next { right: 10px; }
+
+  .photo-wrapper {
+     aspect-ratio: 16 / 9;
+     border-radius: var(--border-radius-medium); /* Maybe smaller radius on mobile */
+  }
+   .photo img {
+      border-radius: var(--border-radius-medium);
+   }
+   .photo-category {
+      bottom: 10px;
+      left: 10px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+   }
+
+
+  .carousel-dots {
+     bottom: -25px;
+     gap: 8px;
+  }
+  .dot {
+     width: 8px;
+     height: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+   .featured-photos h2 {
+      font-size: 1.8rem;
+   }
+    .category-btn {
+        padding: 6px 15px;
+    }
+    /* Make carousel buttons smaller on very small screens */
+     .carousel-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1.3rem;
+     }
+}
+
+/* --- Font Imports (Add to your main index.html or index.css) ---
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+*/
