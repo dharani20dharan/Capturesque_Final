@@ -1,0 +1,154 @@
+/* --- Footer Styles --- */
+:root {
+  /* Define footer-specific or use global variables */
+  --footer-bg: #1a1a1a; /* Dark background, consistent with FeaturedPhotos */
+  --footer-accent: #ff8c00; /* Darker Orange/Amber accent */
+  --footer-text-color: #cccccc; /* Medium grey text */
+  --footer-link-hover: #ffffff; /* White or lighter accent on hover */
+  --footer-border-radius: 6px;
+}
+
+.footer {
+  background-color: var(--footer-bg);
+  color: var(--footer-text-color);
+  padding: 30px 20px; /* Increased padding */
+  text-align: center;
+  width: 100%;
+  border-top: 3px solid var(--footer-accent); /* Thinner, accent border */
+  font-family: 'Roboto', sans-serif; /* Clean sans-serif font */
+  margin-top: auto; /* Ensures it stays at the bottom (requires parent flex setup) */
+  position: relative; /* For potential future pseudo-elements */
+  z-index: 10; /* Ensure it's above potential background elements */
+  box-sizing: border-box;
+}
+
+.footer-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column; /* Stack elements vertically */
+  align-items: center;
+  gap: 15px; /* Space between elements */
+}
+
+/* Social Links Styling */
+.social-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px; /* Increased gap between icons */
+  margin-bottom: 5px; /* Small space above copyright */
+}
+
+.social-icon {
+  display: inline-flex; /* Helps with alignment and potential background shapes */
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  color: var(--footer-text-color); /* Start with muted color */
+  font-size: 1.6rem; /* Slightly larger icons */
+  transition: color 0.3s ease, transform 0.3s ease;
+  padding: 5px; /* Add padding for larger clickable area if needed */
+  border-radius: 50%; /* Make background circular if needed */
+}
+
+.social-icon:hover {
+  color: var(--footer-accent); /* Accent color on hover */
+  transform: translateY(-3px); /* Subtle lift effect */
+}
+
+/* Optional: Individual hover colors if desired
+.social-icon.instagram:hover { color: #E1306C; }
+.social-icon.facebook:hover { color: #1877F2; }
+.social-icon.twitter:hover { color: #1DA1F2; }
+*/
+
+
+/* Copyright Text Styling */
+.footer-text {
+  margin: 0;
+  font-size: 0.9rem; /* Slightly smaller */
+  opacity: 0.8; /* Slightly faded */
+  line-height: 1.5;
+}
+
+/* Optional Footer Links (Privacy, Terms, etc.) */
+.footer-links {
+  margin-top: 5px;
+  font-size: 0.85rem;
+}
+
+.footer-links a {
+  color: var(--footer-text-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+  margin: 0 8px;
+}
+
+.footer-links a:hover {
+  color: var(--footer-link-hover);
+  text-decoration: underline;
+}
+
+.footer-links span { /* Separator */
+  color: rgba(255, 255, 255, 0.3);
+}
+
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
+  .footer {
+    padding: 25px 15px; /* Slightly less padding */
+  }
+  .social-icon {
+    font-size: 1.5rem; /* Slightly smaller icons */
+  }
+  .footer-text {
+    font-size: 0.85rem;
+  }
+}
+
+/* --- Font Imports (Add to your main index.html or index.css) ---
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+*/
+
+/* --- IMPORTANT: Sticky Footer CSS (Should be in Global CSS e.g., index.css) --- */
+/*
+html {
+  height: 100%;
+  box-sizing: border-box;
+}
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+body {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+   font-family: 'Roboto', sans-serif; /* Set base font */
+/* } */
+
+/* Assume your main app content is wrapped in a div,
+   perhaps with id="root" or a specific class */
+/*
+#root { /* Or your main app wrapper selector */
+/*  flex: 1 0 auto; /* Allows content to grow and shrink, pushes footer */
+/*  display: flex;
+  flex-direction: column;
+}
+
+/* The direct child of #root holding the page content (excluding header/footer) */
+/* .page-content { /* Or similar selector for main content area */
+/*   flex: 1; /* Allows this area to take up remaining space */
+/* } */
+
+/* Footer is the last element inside #root or body */
+/* .footer { */
+/*   flex-shrink: 0; /* Prevents footer from shrinking */
+/* } */
