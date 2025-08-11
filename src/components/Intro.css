@@ -1,0 +1,218 @@
+/* --- Base Variables (Consider defining globally) --- */
+:root {
+  --futuristic-bg-start:#f57c00; /* Deep Indigo */
+  --futuristic-bg-end: #bf360c;   /* Dark Blue */
+  --futuristic-accent: #ff9800;   /* Bright Cyan/Aqua */
+  --text-light:#ffffff;        /* Light Grey for body */
+  --text-brighter: #ffffff;      /* White for headings */
+  --text-dark-on-accent: #212121; /* Dark text for contrast on accent button */
+  --border-radius-modern: 6px;
+}
+
+/* --- Intro Section General --- */
+.intro {
+  /* Dark, cool gradient background */
+  background: linear-gradient(135deg, var(--futuristic-bg-start), var(--futuristic-bg-end));
+  color: var(--text-light);
+  padding: 80px 30px; /* Increased padding */
+  text-align: center;
+  overflow: hidden; /* Clip potential pseudo-element effects */
+  position: relative; /* For positioning overlays */
+  min-height: 60vh; /* Ensure decent height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Optional: Subtle background pattern/effect */
+.intro-background-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Example: Faint grid lines */
+  /* background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px; */
+  /* Example: Subtle animated noise/particles (more complex) */
+  opacity: 0.1; /* Keep it very subtle */
+  z-index: 1;
+  /* animation: subtleMovement 40s linear infinite alternate; */
+}
+
+@keyframes subtleMovement {
+  from { background-position: 0 0; }
+  to { background-position: 100px 50px; }
+}
+
+
+/* --- Content Styling --- */
+.intro-content {
+  max-width: 850px; /* Slightly wider */
+  margin: 0 auto;
+  position: relative; /* Above overlay */
+  z-index: 2;
+  animation: contentFadeInUp 1s ease-out forwards;
+  opacity: 0; /* Start hidden for animation */
+}
+
+@keyframes contentFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.intro-heading {
+  font-family: 'Orbitron', sans-serif; /* Techy/Futuristic Font (Import if needed) */
+  /* Fallback font */
+  /* font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
+  font-size: clamp(2.2rem, 5vw, 3.2rem); /* Responsive */
+  font-weight: 600;
+  margin-bottom: 25px;
+  color: var(--text-brighter);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  line-height: 1.3;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.3); /* Subtle cyan glow */
+  animation: headingFadeIn 1.2s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+@keyframes headingFadeIn {
+   from { opacity: 0; transform: scale(0.95); }
+   to { opacity: 1; transform: scale(1); }
+}
+
+
+.intro-text, .intro-highlight {
+  font-family: 'Roboto', sans-serif; /* Clean sans-serif (Import if needed) */
+  /* Fallback font */
+  /* font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
+  font-size: clamp(1rem, 2.2vw, 1.2rem); /* Responsive */
+  line-height: 1.7;
+  margin-bottom: 20px;
+  color: var(--text-light);
+  max-width: 700px; /* Constrain line length for readability */
+  margin-left: auto;
+  margin-right: auto;
+  animation: textFadeInUp 1.2s ease-out 0.4s forwards;
+  opacity: 0;
+}
+
+.intro-highlight {
+  font-weight: 500;
+  margin-bottom: 35px; /* More space before button */
+  color: #b3e5fc; /* Lighter blue for highlight section */
+  animation-delay: 0.6s; /* Stagger animation */
+}
+
+/* Highlight specific terms within text */
+.highlight-term {
+  color: var(--futuristic-accent); /* Bright cyan accent */
+  font-weight: 600;
+}
+
+@keyframes textFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Call-to-Action Button --- */
+.btn-login {
+  display: inline-flex; /* Use flex for icon alignment */
+  align-items: center;
+  gap: 10px; /* Space between icon and text */
+  padding: 14px 35px; /* Generous padding */
+  background-color: var(--futuristic-accent); /* Bright accent background */
+  color: var(--text-dark-on-accent); /* Ensure contrast */
+  font-family: 'Roboto', sans-serif; /* Consistent font */
+  font-size: clamp(0.9rem, 2vw, 1.1rem); /* Responsive */
+  font-weight: 700; /* Bold text */
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: none; /* Remove default border */
+  border-radius: var(--border-radius-modern); /* Slightly modern radius */
+  text-decoration: none;
+  transition: all 0.3s ease; /* Smooth transition for multiple properties */
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 229, 255, 0.2); /* Subtle glow effect */
+  animation: buttonFadeInUp 1.2s ease-out 0.8s forwards;
+  opacity: 0;
+}
+
+.btn-icon {
+  font-size: 1.2em; /* Make icon slightly larger than text */
+}
+
+.btn-login:hover {
+  background-color: #00bcd4; /* Slightly darker cyan on hover */
+  color: var(--text-brighter); /* White text on hover */
+  transform: translateY(-3px) scale(1.03); /* Subtle lift and scale */
+  box-shadow: 0 7px 20px rgba(0, 229, 255, 0.4); /* Enhanced glow on hover */
+}
+
+.btn-login:active {
+   transform: translateY(-1px) scale(1); /* Click effect */
+   box-shadow: 0 4px 10px rgba(0, 229, 255, 0.3);
+}
+
+
+@keyframes buttonFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+/* --- Responsive Styling --- */
+@media (max-width: 768px) {
+  .intro {
+    padding: 60px 20px; /* Adjust padding */
+  }
+
+  .intro-heading {
+     letter-spacing: 1px;
+  }
+
+  .intro-text, .intro-highlight {
+      max-width: 95%; /* Allow text to use more width */
+  }
+}
+
+@media (max-width: 480px) {
+   .intro-heading {
+      font-size: 1.8rem; /* Further reduce heading size */
+   }
+   .intro-text, .intro-highlight {
+       font-size: 0.95rem; /* Adjust body text size */
+   }
+   .btn-login {
+       padding: 12px 25px; /* Smaller padding */
+       width: 80%; /* Make button take more width */
+       justify-content: center; /* Center content within button */
+   }
+}
+
+/* --- Font Imports (Add to your main index.html or index.css) ---
+   You would need to import these fonts, e.g., from Google Fonts:
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+*/
