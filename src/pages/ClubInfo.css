@@ -1,0 +1,284 @@
+/* --- Club Info Page Futuristic Yellow Theme --- */
+:root {
+  /* Yellow/Gold/Amber Palette */
+  --clubinfo-bg-start: #fcd34d; /* amber-300 */
+  --clubinfo-bg-end: #f59e0b;   /* amber-500 */
+  --clubinfo-bg-gradient: linear-gradient(140deg, var(--clubinfo-bg-start) 0%, var(--clubinfo-bg-end) 100%);
+
+  /* Dark Contrast Palette */
+  --clubinfo-card-bg: #111827; /* gray-900 */
+  --clubinfo-text-on-bg: #1f2937; /* gray-800 (for titles on yellow) */
+  --clubinfo-text-primary-on-card: #f9fafb; /* gray-50 (for text on dark cards) */
+  --clubinfo-text-secondary-on-card: #9ca3af; /* gray-400 */
+
+  /* Accent Palette (Vibrant Blue) */
+  --clubinfo-accent: #0ea5e9; /* sky-500 */
+  --clubinfo-accent-hover: #38bdf8; /* sky-400 */
+  --clubinfo-text-on-accent: #ffffff; /* White text on accent */
+
+  /* Borders & Shadows */
+  --clubinfo-border-color: rgba(249, 250, 251, 0.1); /* gray-50 with alpha */
+  --clubinfo-shadow-color: rgba(0, 0, 0, 0.5); /* Darker shadow */
+  --clubinfo-border-radius: 10px; /* Slightly larger radius */
+  --clubinfo-page-padding: 70px 25px;
+  --clubinfo-font-primary: 'Poppins', sans-serif;
+  --clubinfo-font-secondary: 'Roboto', sans-serif;
+}
+
+/* --- General Page Setup --- */
+.club-info-page {
+background: var(--clubinfo-bg-gradient); /* Apply gradient */
+color: var(--clubinfo-text-on-bg); /* Default text color for elements directly on yellow */
+min-height: calc(100vh - var(--navbar-height, 70px) - var(--footer-height, 90px));
+padding: var(--clubinfo-page-padding);
+font-family: var(--clubinfo-font-secondary);
+box-sizing: border-box;
+overflow-x: hidden; /* Prevent horizontal scroll from animations */
+animation: fadeIn 0.8s ease-out;
+}
+
+.club-info-container {
+max-width: 1300px; /* Slightly wider */
+margin: 0 auto;
+text-align: center;
+}
+
+/* --- Titles & Intro --- */
+.page-title { /* Main H1 title */
+font-family: var(--clubinfo-font-primary);
+font-size: clamp(2.5rem, 6vw, 3.5rem);
+color: var(--clubinfo-text-on-bg); /* Dark text on yellow */
+margin-bottom: 20px;
+font-weight: 700; /* Bolder */
+letter-spacing: -0.5px;
+opacity: 0;
+animation: fadeInUp 0.8s 0.2s forwards;
+}
+
+.intro-text {
+font-size: clamp(1rem, 2.5vw, 1.15rem);
+color: var(--clubinfo-text-on-bg);
+opacity: 0.9; /* Slightly less prominent than title */
+line-height: 1.8;
+margin-bottom: 70px; /* More space */
+max-width: 800px;
+margin-left: auto;
+margin-right: auto;
+opacity: 0;
+animation: fadeInUp 0.8s 0.4s forwards;
+}
+
+/* --- Member Section Styling --- */
+.member-section {
+margin-bottom: 70px;
+}
+
+.section-title { /* Section H2 titles */
+font-family: var(--clubinfo-font-primary);
+font-size: clamp(1.8rem, 4.5vw, 2.5rem);
+color: var(--clubinfo-text-on-bg);
+margin-bottom: 50px;
+font-weight: 600;
+position: relative;
+display: inline-block;
+padding-bottom: 12px; /* More space for underline */
+opacity: 0;
+animation: fadeInUp 0.8s 0.6s forwards;
+}
+
+/* Underline effect using accent color */
+.section-title::after {
+content: '';
+position: absolute;
+bottom: 0;
+left: 50%;
+transform: translateX(-50%);
+width: 70px;
+height: 4px;
+background-color: var(--clubinfo-accent);
+border-radius: 3px;
+}
+
+/* --- Members Grid --- */
+.members-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Slightly wider cards */
+gap: 40px; /* Increased gap */
+}
+
+/* --- Member Card --- */
+.member-card {
+background-color: var(--clubinfo-card-bg);
+border-radius: var(--clubinfo-border-radius);
+box-shadow: 0 8px 25px var(--clubinfo-shadow-color); /* Enhanced shadow */
+overflow: hidden;
+text-align: center;
+padding: 35px 25px; /* More padding */
+transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother transition */
+border: 1px solid var(--clubinfo-border-color);
+display: flex;
+flex-direction: column;
+align-items: center;
+opacity: 0;
+animation: cardFadeInUp 0.7s ease-out forwards; /* Staggered delay applied inline in JS */
+}
+
+.member-card:hover {
+transform: translateY(-10px) scale(1.03); /* More pronounced lift and slight scale */
+box-shadow: 0 15px 35px var(--clubinfo-shadow-color);
+}
+
+/* Member Photo */
+.member-photo-wrapper {
+ width: 150px; /* Larger photo */
+ height: 150px;
+ border-radius: 50%;
+ margin-bottom: 30px;
+ position: relative;
+ overflow: hidden;
+ border: 4px solid transparent; /* Start transparent */
+ transition: border-color 0.35s ease, transform 0.35s ease; /* Add transform transition */
+ box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Inner shadow effect */
+}
+.member-card:hover .member-photo-wrapper {
+  border-color: var(--clubinfo-accent); /* Accent border on hover */
+  transform: scale(1.05); /* Slight scale effect on wrapper too */
+}
+
+.member-photo {
+display: block;
+width: 100%;
+height: 100%;
+object-fit: cover;
+transition: transform 0.4s ease;
+}
+/* Keep photo zoom subtle or remove if wrapper scales */
+/* .member-card:hover .member-photo {
+ transform: scale(1.07);
+} */
+
+/* Member Name */
+.member-name { /* h3 */
+font-family: var(--clubinfo-font-primary);
+font-size: 1.5rem; /* Slightly larger */
+font-weight: 600;
+color: var(--clubinfo-text-primary-on-card); /* Use light text color */
+margin-bottom: 12px;
+}
+
+/* Member Quote */
+.member-quote {
+font-size: 1rem;
+color: var(--clubinfo-text-secondary-on-card); /* Use secondary light text */
+font-style: italic;
+margin-bottom: 25px;
+line-height: 1.6;
+max-width: 95%;
+flex-grow: 1;
+min-height: 55px; /* Adjust space if needed */
+}
+.member-quote:empty { display: none; }
+
+/* Instagram Link */
+.insta-link {
+display: inline-flex;
+align-items: center;
+gap: 10px; /* More space */
+font-size: 0.95rem;
+color: var(--clubinfo-text-secondary-on-card); /* Use secondary light text initially */
+text-decoration: none;
+font-weight: 500;
+transition: color 0.3s ease, transform 0.3s ease; /* Add transform transition */
+margin-top: auto;
+padding-top: 15px;
+}
+
+.insta-link .insta-icon {
+font-size: 1.3em; /* Larger icon */
+color: var(--clubinfo-accent); /* Always use accent color for icon */
+transition: transform 0.3s ease;
+}
+
+.insta-link:hover {
+color: var(--clubinfo-accent-hover); /* Use accent hover color for text */
+transform: translateY(-2px); /* Slight lift on hover */
+}
+.insta-link:hover .insta-icon {
+ transform: scale(1.1); /* Scale icon on hover */
+ color: var(--clubinfo-accent-hover); /* Ensure icon color changes too */
+}
+
+/* --- Responsiveness --- */
+@media (max-width: 992px) {
+  .members-grid {
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 35px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root { --clubinfo-page-padding: 50px 20px; }
+
+  .page-title { margin-bottom: 15px; }
+  .intro-text { margin-bottom: 50px; }
+  .member-section { margin-bottom: 50px; }
+  .section-title { margin-bottom: 40px; }
+
+  .members-grid {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 30px;
+  }
+
+  .member-card {
+      padding: 30px 20px;
+  }
+  .member-photo-wrapper {
+      width: 130px;
+      height: 130px;
+      margin-bottom: 25px;
+  }
+  .member-name { font-size: 1.3rem; }
+  .member-quote { font-size: 0.95rem; min-height: 50px; }
+  .insta-link { font-size: 0.9rem; }
+}
+
+@media (max-width: 576px) { /* Adjusted breakpoint */
+  .members-grid {
+      grid-template-columns: 1fr; /* Single column earlier */
+      gap: 25px;
+      padding: 0 10px; /* Add padding to prevent touching edges */
+  }
+  .member-card {
+      max-width: 350px; /* Limit width */
+      margin-left: auto;
+      margin-right: auto;
+  }
+}
+
+/* --- Animations (Keep existing, potentially adjust timings/easing if needed) --- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+      opacity: 0;
+      transform: translateY(30px); /* Slightly more distance */
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+@keyframes cardFadeInUp {
+  from {
+      opacity: 0;
+      transform: translateY(40px) scale(0.97); /* Adjusted */
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+  }
+}
