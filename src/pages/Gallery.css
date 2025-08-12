@@ -1,0 +1,510 @@
+/* Gallery.css - Fix Modal Size & Portrait Cropping */
+
+/* --- Font Imports --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500&display=swap');
+
+/* --- Root Variables --- */
+:root {
+  --text-primary: #e8e8e8;
+  --text-secondary: #b0b0b0;
+  --text-on-accent: #111111;
+  --text-title-glow: rgba(255, 255, 255, 0.3);
+
+  /* Accents & Glows */
+  --accent-primary: #f57c00; /* Main Amber */
+  --accent-primary-glow: rgba(245, 124, 0, 0.5);
+  --accent-secondary: #ff9800; /* Brighter Amber for hover/highlights */
+  --accent-highlight: #FDB813; /* Gallery's Yellow-Orange for specific highlights */
+  --accent-error: #f44336;
+  --accent-error-bg: rgba(80, 20, 20, 0.6);
+  
+  /* Futuristic Amber/Gold Gradient */
+  --gradient-start: #FDB813; /* Vibrant Yellow-Orange */
+  --gradient-end: #F8862B;   /* Rich Orange */
+  --gradient-angle: 135deg;
+
+  /* High Contrast Dark Theme for Elements */
+  --element-bg: #1a1a1a;
+  --element-bg-lighter: #2c2c2c;
+  --element-border: rgba(255, 255, 255, 0.15);
+  --element-shadow: rgba(0, 0, 0, 0.6);
+
+  /* Text Colors */
+  --text-primary: #f0f0f0;
+  --text-secondary: #a0a0a0;
+  --text-on-accent: #111111;
+
+  /* Accent Color */
+  --accent-primary: var(--gradient-start);
+  --accent-primary-glow: rgba(253, 184, 19, 0.5);
+  --accent-secondary: var(--gradient-end);
+
+  /* General */
+  --border-radius: 6px;
+  --transition-speed: 0.3s;
+
+  /* --- MODAL SIZING VARIABLES --- */
+  --modal-max-width-desktop: 90vw;  /* Increase max width */
+  --modal-max-height-desktop: 90vh; /* Increase max height */
+}
+
+/* --- General Page Styling --- */
+.gallery-page {
+  background: linear-gradient(var(--gradient-angle), var(--gradient-start), var(--gradient-end));
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: calc(100vh - var(--navbar-height, 60px) - var(--footer-height, 50px));
+  padding: 50px 25px;
+  font-family: 'Roboto', sans-serif;
+  box-sizing: border-box;
+}
+
+.gallery-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0;
+  text-align: center;
+}
+
+.gallery-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  margin-bottom: 50px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+/* --- Folder View --- */
+.folders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.folder-card {
+  background-color: var(--element-bg);
+  padding: 30px 25px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--element-border);
+  cursor: pointer;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-speed) ease,
+              box-shadow var(--transition-speed) ease,
+              border-color var(--transition-speed) ease,
+              background-color var(--transition-speed) ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+}
+
+.folder-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  background-color: var(--element-bg-lighter);
+  border-color: var(--accent-primary);
+  box-shadow: 0 10px 30px var(--element-shadow), 0 0 15px var(--accent-primary-glow);
+}
+
+.folder-icon-wrapper { margin-bottom: 20px; }
+.folder-icon {
+  font-size: 4rem;
+  color: var(--text-secondary);
+  opacity: 0.9;
+  transition: color var(--transition-speed) ease, transform var(--transition-speed) ease;
+}
+.folder-card:hover .folder-icon {
+  color: var(--accent-primary);
+  transform: scale(1.1);
+}
+.folder-name {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* --- Image Grid View --- */
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 20px;
+}
+.gallery-header .gallery-title {
+  margin-bottom: 0;
+  text-align: right;
+  flex-grow: 1;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);}
+
+ .back-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+  background-color: rgba(42, 42, 42, 0.6); color: var(--text-secondary);
+  border: 1px solid var(--element-border); border-radius: var(--border-radius-sharp);
+  cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all var(--transition-speed) ease;
+  white-space: nowrap; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+.back-btn:hover {
+  background-color: rgba(58, 58, 58, 0.7); border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 10px var(--accent-primary-glow);
+  transform: translateY(-2px);
+}
+.back-btn svg {
+  font-size: 1.1em;
+  transition: transform var(--transition-speed-med) ease;
+}
+.back-btn:hover svg { transform: translateX(-3px); }
+
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 25px;
+  margin-top: 30px;
+}
+.image-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  aspect-ratio: 1 / 1; /* Or adjust as needed */
+  background-color: var(--element-bg);
+  border: 1px solid var(--element-border);
+  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+.image-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
+}
+.image-item:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 25px var(--element-shadow);
+}
+.image-item:hover img {
+  transform: scale(1.1);
+  opacity: 0.7;
+}
+.image-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 60%);
+  opacity: 0;
+  transition: opacity var(--transition-speed) ease;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 15px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.image-item:hover .image-overlay { opacity: 1; }
+
+/* --- Loading / Error / Info Messages --- */
+.gallery-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 350px;
+  padding: 40px;
+  border-radius: var(--border-radius);
+  background-color: rgba(0, 0, 0, 0.5);
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-top: 40px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.gallery-message.error {
+  color: #ff9494;
+  background-color: rgba(80, 0, 0, 0.6);
+}
+.gallery-message svg {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  opacity: 0.8;
+}
+.spinner-icon {
+  color: var(--accent-primary);
+  animation: spin 1.5s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --- Modal Styling --- */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px; /* Add padding around the modal */
+  box-sizing: border-box;
+  animation: modalFadeIn 0.3s ease-out forwards;
+}
+@keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content {
+  position: relative;
+  background: var(--element-bg);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--element-border);
+
+  /* **FIX**: Adjust max size using variables for desktop */
+  width: auto; /* Let content influence width up to max */
+  height: auto; /* Let content influence height up to max */
+  max-width: var(--modal-max-width-desktop);
+  max-height: var(--modal-max-height-desktop);
+
+  overflow: hidden; /* Keep hidden */
+  box-shadow: 0 15px 40px var(--element-shadow);
+  display: flex;
+  flex-direction: column;
+  animation: modalScaleUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+@keyframes modalScaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.modal-image-container {
+  flex-grow: 1; /* Critical: Allow container to take available vertical space */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden; /* Keep hidden */
+  position: relative;
+  padding: 20px; /* Padding around the image inside container */
+  box-sizing: border-box;
+  /* **FIX**: Add min-height: 0 to prevent flex issues */
+  min-height: 0;
+}
+
+.modal-image {
+  aspect-ratio: auto; 
+  display: block; /* Essential for sizing */
+  /* Let the image determine its own size up to the container limits */
+  width: auto;
+  height: auto;
+  /* **FIX**: Ensure image doesn't exceed container */
+  max-width: 100%;
+  max-height: 100%;
+  /* **FIX**: This scales the image down while preserving aspect ratio */
+  object-fit: contain;
+  user-select: none;
+  border-radius: calc(var(--border-radius) / 2);
+
+  /* Add fade-in animation for the image itself */
+  opacity: 0;
+  animation: modalImageFadeIn 0.5s ease 0.2s forwards;
+
+}
+
+@keyframes modalImageFadeIn {
+   from { opacity: 0; }
+   to { opacity: 1; }
+}
+
+
+.modal-actions {
+  padding: 15px 25px;
+  background-color: var(--element-bg-lighter);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--element-border);
+  flex-shrink: 0; /* Prevent actions bar from shrinking */
+  position: relative; /* Ensure context for absolute children */
+  z-index: 15; /* Ensure it's above image container background if needed */
+}
+
+.modal-download-btn {
+  /* Position relative to actions bar or image container */
+ /* position: static; /* Let it flow naturally now */
+  /* If you want it absolute again: */
+   position: absolute; 
+   bottom: 50px;  /* Adjust as needed */
+  right: 25px;  /* Adjust as needed */
+
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  z-index: 10; /* Below close button but can be above image */
+  transition: background-color var(--transition-speed) ease, transform 0.2s ease, box-shadow var(--transition-speed) ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.modal-download-btn:hover {
+  background: var(--accent-secondary);
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 15px var(--accent-primary-glow);
+}
+
+.modal-download-btn svg { font-size: 1.2em; }
+
+.login-prompt {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-style: italic;
+  /* width: 100%; Remove width if button is also present */
+  text-align: center;
+  margin: 0 10px; /* Add some margin */
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 20; /* Ensure it's above everything */
+  transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: rotate(90deg) scale(1.1);
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 992px) { /* Tablet and smaller */
+  .folders {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 25px;
+  }
+  .image-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .modal-content {
+    /* Slightly smaller max size for tablets */
+    max-width: 92vw;
+    max-height: 90vh;
+  }
+}
+
+@media (max-width: 768px) { /* Mobile */
+  .gallery-page {
+    padding: 40px 15px;
+  }
+  .gallery-header {
+    flex-direction: column;
+    align-items: center;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+   .gallery-header .gallery-title {
+     text-align: center;
+     margin-top: 15px;
+   }
+  .back-btn {
+      width: auto;
+      margin-bottom: 20px;
+  }
+  .folders {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+  }
+  .folder-card {
+    min-height: 160px;
+    padding: 20px 15px;
+  }
+  .folder-icon { font-size: 3.5rem; }
+  .folder-name { font-size: 1.05rem; }
+
+  .image-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+  }
+  .modal-content {
+      /* Use more screen space on mobile */
+      max-width: 95vw;
+      max-height: 90vh;
+  }
+  .modal-image-container { padding: 10px; }
+  .modal-actions {
+      padding: 10px 15px;
+      justify-content: space-around; /* Better layout for button/prompt */
+   }
+  .modal-download-btn {
+      /* Ensure button flows and isn't too large */
+      position: static; /* Override absolute positioning */
+      transform: none !important; /* Reset hover transform */
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      margin: 5px; /* Add margin */
+  }
+   .modal-download-btn:hover { /* Adjust hover for static button */
+       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), 0 0 10px var(--accent-primary-glow);
+   }
+  .login-prompt { margin: 5px; } /* Add margin */
+
+  .modal-close-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 1.1rem;
+    top: 10px;
+    right: 10px;
+  }
+}
+
+@media (max-width: 480px) { /* Small Mobile */
+  .folders {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+   .folder-card { min-height: 140px; }
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr); /* Or repeat(1, 1fr) if needed */
+    gap: 10px;
+  }
+  .gallery-title { font-size: clamp(1.8rem, 8vw, 2.2rem); }
+  .modal-content {
+      max-width: calc(100vw - 20px); /* Slightly more padding */
+      max-height: calc(100vh - 20px);
+  }
+  .modal-download-btn {
+      padding: 8px 16px;
+      gap: 6px;
+      font-size: 0.85rem;
+  }
+  .modal-download-btn svg { font-size: 1em; }
+}
