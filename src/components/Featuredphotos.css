@@ -1,108 +1,104 @@
-/* --- Base Variables (Consider defining globally) --- */
+/*================================================================
+  FEATURED PHOTOS - REFINED YELLOWISH GOLDEN THEME
+  Updated to match the refactored component structure.
+================================================================*/
+
+/* --- 1. Root Variables & Global Imports --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-  --featured-bg-color: #1a1a1a; /* Dark background */
-  --featured-overlay-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
-  --featured-accent-color: #ff8c00; /* Darker Orange/Amber */
-  --featured-accent-hover: #ffa500; /* Lighter orange for hover */
-  --text-light: #f0f0f0;
-  --text-medium: #cccccc;
-  --text-dark-on-accent: #111111;
-  --border-color-light: rgba(255, 255, 255, 0.2);
-  --border-radius-medium: 8px;
-  --border-radius-large: 15px; /* For image */
-  --shadow-color: rgba(0, 0, 0, 0.4);
+  /* Using the consistent golden theme palette */
+  --color-gold-primary: #FFD700;
+  --color-gold-dark: #D4AF37;
+  --color-background-deep: #121212;
+  --color-text-primary: #F5F5F5;
+  --color-text-secondary: #AAAAAA;
+  --color-border: rgba(255, 215, 0, 0.15);
+  --color-shadow: rgba(0, 0, 0, 0.5);
+  --font-family-main: 'Inter', sans-serif;
+  --transition-speed: 0.3s;
+  --border-radius: 12px;
 }
 
-/* --- Section Styling --- */
-.featured-photos {
-  background-color: var(--featured-bg-color); /* Fallback color */
-  color: var(--text-light);
-  padding: 60px 20px;
+/* --- 2. Main Section Container --- */
+.featured-photos-container {
   position: relative;
+  padding: 4rem 2rem;
+  background-color: var(--color-background-deep); /* Fallback color */
+  color: var(--color-text-primary);
+  font-family: var(--font-family-main);
+  text-align: center;
   overflow: hidden;
-  min-height: 70vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
-/* Background Image & Overlay */
-.featured-photos::before { /* Use pseudo-element for background */
+/* 
+  BACKGROUND IMAGE & OVERLAY
+  - The background image is applied here.
+  - IMPORTANT: Place your background image (e.g., 'bg3.jpg') inside the `public` folder 
+    of your project, like `public/backgrounds/bg3.jpg`. Then update the URL below.
+*/
+.featured-photos-container::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  /* *** IMPORTANT: Use a relative path from your PUBLIC folder *** */
-  background: url('C:\Users\DHARANIDHARAN\Desktop\SNU\Additional\WebDev\Project1\Beta\PROJECT_2 (2)\PROJECT_2\capturesque_beta\src\Assets/bg3.jpg') no-repeat center center/cover;
+  inset: 0;
+  background: url('C:\Users\DHARANIDHARAN\Desktop\SNU\Additional\WebDev\Project1\Beta\PROJECT_2 (2)\PROJECT_2\capturesque_beta\src\Assets\bg3.jpg') no-repeat center center/cover;
+  filter: brightness(0.6); /* Adjust brightness of the image itself */
   z-index: 1;
-  filter: brightness(0.7); /* Adjust brightness */
 }
-
-.featured-photos-overlay {
+.featured-photos-container::after {
+  content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to bottom, rgba(10, 10, 10, 0.8), rgba(10, 10, 10, 0.9));
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(18, 18, 18, 0.85), rgba(18, 18, 18, 0.98));
   z-index: 2;
 }
 
-/* Content container */
 .featured-photos-content {
-  position: relative; /* Above overlays */
+  position: relative; /* Sits above the background and overlay */
   z-index: 3;
-  width: 100%;
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
-  text-align: center;
 }
 
-.featured-photos h2 {
-  font-family: 'Poppins', sans-serif; /* Cleaner font */
-  font-size: clamp(2.2rem, 5vw, 3rem);
-  margin-bottom: 30px;
-  color: var(--featured-accent-color);
-  font-weight: 600;
-  text-shadow: 1px 1px 5px var(--shadow-color);
+.featured-photos-content h2 {
+  font-size: clamp(2rem, 5vw, 2.8rem); /* Responsive font size */
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--color-gold-primary);
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
 }
 
-/* --- Categories Styling --- */
+/* --- 3. Categories Buttons --- */
 .categories {
-  margin-bottom: 40px;
   display: flex;
   justify-content: center;
-  gap: 12px;
   flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
 }
 
 .category-btn {
-  background: transparent;
-  color: var(--text-medium);
-  border: 1px solid var(--border-color-light);
-  padding: 10px 25px;
-  border-radius: 30px; /* Pill shape */
-  font-size: 0.95rem;
-  font-weight: 500;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 50px; /* Pill shape */
+  border: 1px solid var(--color-border);
+  background-color: transparent;
+  color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: capitalize; /* Display categories nicely */
+  transition: all var(--transition-speed) ease;
 }
 
 .category-btn:hover:not(:disabled) {
-  background-color: rgba(255, 140, 0, 0.1);
-  border-color: var(--featured-accent-hover);
-  color: var(--featured-accent-hover);
+  background-color: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 .category-btn.active {
-  background-color: var(--featured-accent-color);
-  border-color: var(--featured-accent-color);
-  color: var(--text-dark-on-accent);
-  font-weight: 600;
-  box-shadow: 0 3px 10px rgba(255, 140, 0, 0.3);
+  background-color: var(--color-gold-primary);
+  color: var(--color-background-deep);
+  border-color: var(--color-gold-primary);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
 }
 
 .category-btn:disabled {
@@ -110,267 +106,174 @@
   cursor: not-allowed;
 }
 
-/* Error Text for Categories (if shown) */
-.error-text {
-   color: #ff8a8a;
-   display: inline-flex;
-   align-items: center;
-   gap: 8px;
-   margin-top: 10px; /* Space it from buttons if needed */
-   width: 100%; /* Take full width if needed */
-   justify-content: center;
-   font-style: italic;
+/* --- 4. Carousel Structure --- */
+.carousel-container {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
 }
 
-
-/* --- Carousel Styling --- */
-.carousel-container {
+.carousel-body {
+  position: relative;
   width: 100%;
-  max-width: 700px; /* Adjust max width as needed */
-  margin: 0 auto;
-  min-height: 400px; /* Ensure space for messages/loader */
+  aspect-ratio: 16 / 10; /* Maintain a consistent shape */
+  min-height: 400px; /* Space for messages */
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 30px var(--color-shadow);
+  display: flex; /* Centers status overlay content */
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 5. Photo Display (with Cropping Fix) --- */
+.photo-display {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
+  padding: 1rem;
+  animation: fadeIn 0.7s ease-in-out;
 }
 
-/* The main carousel div holding buttons and wrapper */
-.carousel {
-  width: 100%;
-  position: relative; /* Contains buttons and dots */
-  display: flex; /* Center photo wrapper if it's smaller */
-  align-items: center;
-  justify-content: center;
+.photo-display img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* THE FIX: Ensures full image is visible without cropping */
+  border-radius: 8px;
 }
 
-/* Wrapper around the actual photo+category element */
-.photo-wrapper {
-  width: 100%;
-  aspect-ratio: 16 / 10; /* Maintain aspect ratio */
-  overflow: hidden;
-  border-radius: var(--border-radius-large); /* Use large radius */
-  position: relative;
-  background-color: rgba(255, 255, 255, 0.05); /* Placeholder bg */
-  box-shadow: 0 8px 25px var(--shadow-color);
-}
-
-/* The div containing the image and category text */
-.photo {
+.photo-info {
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  /* Apply transition to the container */
-  transition: opacity 0.5s ease-in-out;
-}
-
-.photo img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* Cover the wrapper */
-  border-radius: var(--border-radius-large); /* Match wrapper */
-  user-select: none;
-}
-
-/* Category text overlayed on the photo */
-.photo-category {
-  position: absolute;
-  bottom: 15px;
-  left: 15px;
-  background-color: rgba(0, 0, 0, 0.6);
-  color: var(--featured-accent-hover);
-  padding: 5px 12px;
-  border-radius: 5px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  text-transform: capitalize;
-  z-index: 5; /* Above image */
-  opacity: 0; /* Fade in with photo */
-  transition: opacity 0.4s ease 0.2s; /* Delayed fade in */
-}
-/* Show category when photo is visible */
-.photo.fade-in .photo-category {
-   opacity: 1;
-}
-
-
-/* Animation Classes for the .photo div */
-.fade-in {
-  opacity: 1;
-  z-index: 1; /* Bring active photo to front */
-}
-
-.fade-out {
+  right: 0;
+  padding: 1.5rem 1rem 1rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+  text-align: center;
+  color: var(--color-text-primary);
   opacity: 0;
-  z-index: 0; /* Send fading photo to back */
+  transform: translateY(10px);
+  transition: all 0.4s ease 0.2s; /* Delayed fade in */
 }
 
-/* Carousel Buttons (Prev/Next) */
+.photo-display:hover .photo-info {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.photo-name {
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+}
+
+.photo-category {
+  font-size: 0.9rem;
+  color: var(--color-gold-primary);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* --- 6. Carousel Controls & Dots --- */
 .carousel-btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.8rem; /* Icon size */
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
   border: none;
+  border-radius: 50%;
   width: 45px;
   height: 45px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 50%;
-  z-index: 10; /* Above photo */
-  transition: all 0.3s ease;
-  opacity: 0; /* Hidden by default */
+  z-index: 10;
+  transition: all var(--transition-speed) ease;
+  opacity: 0;
 }
 
-/* Show buttons on carousel container hover */
 .carousel-container:hover .carousel-btn {
-   opacity: 1;
+  opacity: 1;
 }
 
-.carousel-btn:hover:not(:disabled) {
-  background: var(--featured-accent-color);
-  color: var(--text-dark-on-accent);
+.carousel-btn:hover {
+  background-color: var(--color-gold-primary);
+  color: var(--color-background-deep);
   transform: translateY(-50%) scale(1.1);
 }
 
-.carousel-btn:disabled {
-  opacity: 0.3 !important;
-  cursor: default;
-}
+.carousel-btn.prev { left: 1.5rem; }
+.carousel-btn.next { right: 1.5rem; }
 
-.carousel-btn.prev {
-  left: 15px;
-}
-
-.carousel-btn.next {
-  right: 15px;
-}
-
-/* Styling for the error message shown when filteredPhotos is empty */
-.carousel-message.error {
-  color: #ffaeae;
-  font-size: 1.1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-  padding: 20px;
-  border-radius: var(--border-radius-medium);
-  background-color: rgba(255, 0, 0, 0.1);
-  width: 100%;
-  min-height: 200px; /* Ensure visibility */
-  font-style: italic;
-}
-
-/* Carousel Dots (Optional) */
 .carousel-dots {
   position: absolute;
-  bottom: -30px; /* Position below the photo wrapper */
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 10px;
-  z-index: 5; /* Ensure dots are clickable */
+  gap: 0.75rem;
+  z-index: 10;
 }
 
 .dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.4);
   border: none;
-  padding: 0;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.3s ease;
+  transition: all var(--transition-speed) ease;
 }
 
-.dot:hover {
-  background-color: rgba(255, 255, 255, 0.7);
+.dot:hover { background: rgba(255, 255, 255, 0.7); }
+.dot.active { background: var(--color-gold-primary); transform: scale(1.2); }
+
+/* --- 7. Status Overlay (Loading/Error) --- */
+.status-overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 18, 18, 0.7);
+  backdrop-filter: blur(5px);
+  z-index: 20;
 }
 
-.dot.active {
-  background-color: var(--featured-accent-color);
-  transform: scale(1.2);
+.spinner-icon {
+  font-size: 3rem;
+  color: var(--color-gold-primary);
+  animation: spin 1.2s linear infinite;
 }
 
+.error-text {
+  font-size: 1.2rem;
+  color: #ff8a80;
+  padding: 1rem;
+  font-style: italic;
+}
 
-/* --- Responsive Design --- */
+/* --- 8. Animations & Responsiveness --- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
-  .featured-photos {
-      padding: 40px 15px;
-  }
-  .categories {
-      gap: 8px;
-      margin-bottom: 30px;
-  }
-  .category-btn {
-      padding: 8px 18px;
-      font-size: 0.9rem;
-  }
-  .carousel-container {
-      max-width: 95%;
-      min-height: 300px;
-  }
-  .carousel-btn {
-    opacity: 1; /* Always visible on touch devices */
-    width: 40px;
-    height: 40px;
-    font-size: 1.5rem;
-    background: rgba(0, 0, 0, 0.4);
-  }
-  .carousel-btn.prev { left: 10px; }
-  .carousel-btn.next { right: 10px; }
-
-  .photo-wrapper {
-     aspect-ratio: 16 / 9;
-     border-radius: var(--border-radius-medium); /* Maybe smaller radius on mobile */
-  }
-   .photo img {
-      border-radius: var(--border-radius-medium);
-   }
-   .photo-category {
-      bottom: 10px;
-      left: 10px;
-      padding: 4px 10px;
-      font-size: 0.8rem;
-   }
-
-
-  .carousel-dots {
-     bottom: -25px;
-     gap: 8px;
-  }
-  .dot {
-     width: 8px;
-     height: 8px;
-  }
+  .featured-photos-container { padding: 3rem 1rem; }
+  .carousel-body { aspect-ratio: 16 / 11; }
+  .carousel-btn { opacity: 1; width: 40px; height: 40px; }
+  .carousel-btn.prev { left: 0.5rem; }
+  .carousel-btn.next { right: 0.5rem; }
+  .photo-info { opacity: 1; transform: translateY(0); background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); }
 }
-
-@media (max-width: 480px) {
-   .featured-photos h2 {
-      font-size: 1.8rem;
-   }
-    .category-btn {
-        padding: 6px 15px;
-    }
-    /* Make carousel buttons smaller on very small screens */
-     .carousel-btn {
-        width: 35px;
-        height: 35px;
-        font-size: 1.3rem;
-     }
-}
-
-/* --- Font Imports (Add to your main index.html or index.css) ---
-   <link rel="preconnect" href="https://fonts.googleapis.com">
-   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-*/

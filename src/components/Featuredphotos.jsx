@@ -1,239 +1,205 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa'; // Import icons for buttons
+import { FaChevronLeft, FaChevronRight, FaSpinner } from 'react-icons/fa';
 import "./Featuredphotos.css";
 
+// --- Configuration ---
 const API_BASE_URL = "http://150.230.138.173:8087";
 const FEATURE_FOLDER = "Feature";
+const AUTOPLAY_INTERVAL = 5000; // 5 seconds for a more relaxed pace
 
+// --- Custom Hook for Interval with Hover Pause ---
+const useAutoplay = (callback, delay) => {
+  const savedCallback = useRef();
+  const intervalId = useRef(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  const run = useCallback(() => {
+    if (!isPaused) {
+      savedCallback.current();
+    }
+  }, [isPaused]);
+
+  useEffect(() => {
+    if (delay !== null) {
+      intervalId.current = setInterval(run, delay);
+      return () => clearInterval(intervalId.current);
+    }
+  }, [delay, run]);
+
+  return { pause: () => setIsPaused(true), resume: () => setIsPaused(false) };
+};
+
+// --- Main Component ---
 const Featuredphotos = () => {
-  const [categories, setCategories] = useState(["All"]);
-  const [photos, setPhotos] = useState([]); // Main store if needed, currently unused based on logic
-  const [filteredPhotos, setFilteredPhotos] = useState([]); // This holds the photos to display
+  const [categories, setCategories] = useState([]);
+  const [photos, setPhotos] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [animate, setAnimate] = useState(false); // Tracks animation state
-  const [error, setError] = useState(null);
+  
+  // Unified status for loading, success, and error states
+  const [status, setStatus] = useState({ state: 'loading', message: '' });
 
-  // Fetch subfolders inside "Feature" folder
+  // --- Fetch Categories ---
   useEffect(() => {
     const fetchCategories = async () => {
-      // Reset error at the beginning
-      setError(null);
       try {
         const response = await axios.get(`${API_BASE_URL}/api/folders/${FEATURE_FOLDER}`);
-        console.log("Fetched categories:", response.data);
-
-        if (response.data && response.data.subfolders && Array.isArray(response.data.subfolders)) {
-          setCategories(["All", ...response.data.subfolders]);
-        } else {
-          // Keep "All" even if no subfolders found? Or set error?
-          // Assuming we show error if subfolders array is missing/not an array
-          setCategories(["All"]); // Keep 'All' as a minimum option
-          setError("No specific categories found, showing all."); // Info message instead of hard error
+        const subfolders = response.data?.subfolders || [];
+        if (Array.isArray(subfolders)) {
+          setCategories(["All", ...subfolders]);
         }
       } catch (error) {
         console.error("Error fetching categories:", error);
-        setCategories(["All"]); // Fallback to 'All'
-        setError("Failed to load categories. Please check your server.");
+        // Still provide "All" as a fallback option
+        setCategories(["All"]); 
       }
     };
-
     fetchCategories();
   }, []);
 
-  // Fetch images from selected folder or all folders
-    // Fetch images from selected folder or all folders
-    useEffect(() => {
-      const fetchImages = async () => {
-        setFilteredPhotos([]);
-        setError(null);
-        setCurrentIndex(0);
-    
-        if (activeCategory === "All") {
-          try {
-            const catResponse = await axios.get(`${API_BASE_URL}/api/folders/${FEATURE_FOLDER}`);
-            const subfolders = catResponse.data?.subfolders || [];
-    
-            if (!Array.isArray(subfolders) || subfolders.length === 0) {
-              setError("No categories found to fetch images from.");
-              return;
-            }
-    
-            const imageFetchPromises = subfolders.map((folder) => {
-              const categoryPath = `${FEATURE_FOLDER}_${encodeURIComponent(folder)}`;
-              return axios.get(`${API_BASE_URL}/api/images/${categoryPath}`);
-            });
-    
-            const results = await Promise.allSettled(imageFetchPromises);
-    
-            const allImages = results
-              .filter(result => result.status === "fulfilled" && Array.isArray(result.value.data))
-              .flatMap(result => result.value.data);
-    
-            if (allImages.length > 0) {
-              setFilteredPhotos(allImages);
-            } else {
-              setError("No images found across all categories.");
-            }
-          } catch (error) {
-            console.error("Error fetching all category images:", error);
-            setError(`Failed to load images (${error.message || 'Server Error'}).`);
-          }
-        } else {
-          try {
-            const categoryPath = `${FEATURE_FOLDER}_${encodeURIComponent(activeCategory)}`;
-            const response = await axios.get(`${API_BASE_URL}/api/images/${categoryPath}`);
-    
-            if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-              setFilteredPhotos(response.data);
-            } else {
-              setError(`No images found in the "${activeCategory}" category.`);
-            }
-          } catch (error) {
-            console.error(`Error fetching images for ${activeCategory}:`, error);
-            setError(`Failed to load images (${error.message || 'Server Error'}).`);
-          }
-        }
-      };
-    
-      fetchImages();
-    }, [activeCategory]);
-    
-        
-
-  // Auto-slide every 3 seconds (Adjusted interval)
+  // --- Fetch Images based on Active Category ---
   useEffect(() => {
-    if (filteredPhotos.length > 1) {
-      const timer = setInterval(() => {
-        nextPhoto();
-      }, 4000); // Changed interval to 4 seconds
-      return () => clearInterval(timer);
-    }
-  }, [filteredPhotos, currentIndex]); // Rerun if photos or index change
+    const fetchImages = async () => {
+      setStatus({ state: 'loading', message: '' });
+      setCurrentIndex(0);
+      setPhotos([]);
 
-  // Next and previous photo functions using 'animate' state
-  const nextPhoto = () => {
-    if (filteredPhotos.length <= 1 || animate) return; // Prevent action during animation or if only one photo
-    setAnimate(true); // Trigger fade-out/slide-out
-    setTimeout(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % filteredPhotos.length);
-      // Set animate back to false slightly after index changes, allowing fade-in class to apply
-      setTimeout(() => setAnimate(false), 50); // Short delay before allowing fade-in
-    }, 500); // Duration should match CSS transition time for fade-out
+      try {
+        let fetchedImages = [];
+
+        if (activeCategory === "All") {
+          // Fetch categories again to ensure we have the list of subfolders
+          const catResponse = await axios.get(`${API_BASE_URL}/api/folders/${FEATURE_FOLDER}`);
+          const subfolders = catResponse.data?.subfolders || [];
+
+          if (subfolders.length === 0) {
+            throw new Error("No categories found to fetch images from.");
+          }
+
+          const imagePromises = subfolders.map(folder => {
+            const path = `${FEATURE_FOLDER}_${encodeURIComponent(folder)}`;
+            return axios.get(`${API_BASE_URL}/api/images/${path}`).then(res => 
+              // Add category metadata to each photo object
+              (res.data || []).map(photo => ({ ...photo, category: folder }))
+            );
+          });
+
+          const results = await Promise.all(imagePromises);
+          fetchedImages = results.flat();
+
+        } else {
+          const path = `${FEATURE_FOLDER}_${encodeURIComponent(activeCategory)}`;
+          const response = await axios.get(`${API_BASE_URL}/api/images/${path}`);
+          fetchedImages = (response.data || []).map(photo => ({ ...photo, category: activeCategory }));
+        }
+
+        if (fetchedImages.length > 0) {
+          setPhotos(fetchedImages);
+          setStatus({ state: 'success', message: '' });
+        } else {
+          setStatus({ state: 'error', message: `No images found in "${activeCategory}".` });
+        }
+      } catch (error) {
+        console.error("Error fetching images:", error);
+        setStatus({ state: 'error', message: `Failed to load images. Please try again later.` });
+      }
+    };
+
+    fetchImages();
+  }, [activeCategory]);
+  
+  // --- Carousel Navigation ---
+  const goToNext = useCallback(() => {
+    setCurrentIndex(prev => (prev + 1) % photos.length);
+  }, [photos.length]);
+
+  const goToPrev = () => {
+    setCurrentIndex(prev => (prev - 1 + photos.length) % photos.length);
   };
 
-  const prevPhoto = () => {
-    if (filteredPhotos.length <= 1 || animate) return;
-    setAnimate(true);
-    setTimeout(() => {
-      setCurrentIndex((prevIndex) => (prevIndex - 1 + filteredPhotos.length) % filteredPhotos.length);
-       setTimeout(() => setAnimate(false), 50);
-    }, 500);
-  };
+  const { pause, resume } = useAutoplay(goToNext, photos.length > 1 ? AUTOPLAY_INTERVAL : null);
 
-  // Determine the CSS class for animation based on 'animate' state
-  const photoClassName = `photo ${animate ? 'fade-out' : 'fade-in'}`;
-  const currentPhotoData = filteredPhotos[currentIndex]; // Get current photo data
+  const currentPhoto = photos[currentIndex];
 
   return (
-    <section className="featured-photos">
-      {/* Overlay and Background handled by CSS */}
-      <div className="featured-photos-overlay"></div>
+    <section className="featured-photos-container">
       <div className="featured-photos-content">
         <h2>Featured Photos</h2>
 
-        {/* Categories Section */}
         <div className="categories">
-          {/* Optional: Add loading state for categories if fetch takes time */}
-          {categories.length > 0 ? (
-             categories.map((category) => (
-              <button
-                key={category}
-                className={`category-btn ${activeCategory === category ? "active" : ""}`}
-                onClick={() => setActiveCategory(category)}
-                // Optional: disable while images are loading? Add isLoadingImages state if needed
-                // disabled={isLoadingImages}
-              >
-                {category}
-              </button>
-            ))
-          ) : (
-             // Show message if categories array is empty (excluding 'All')
-             <p className="info-text">No categories defined yet.</p>
-          )}
-          {/* Display category fetch error */}
-          {error && categories.length <= 1 && <p className="error-text">{error}</p>}
+          {categories.map(category => (
+            <button
+              key={category}
+              className={`category-btn ${activeCategory === category ? "active" : ""}`}
+              onClick={() => setActiveCategory(category)}
+              disabled={status.state === 'loading'}
+            >
+              {category}
+            </button>
+          ))}
         </div>
 
-        {/* Carousel Section */}
-        <div className="carousel-container">
-          {/* Conditionally render carousel or error/info message */}
-          {filteredPhotos.length > 0 ? (
-            <div className="carousel">
-              <button
-                className="carousel-btn prev"
-                onClick={prevPhoto}
-                aria-label="Previous Photo"
-                disabled={animate || filteredPhotos.length <= 1}
-              >
-                <FaChevronLeft />
-              </button>
-
-              <div className="photo-wrapper">
-                {/* Display current photo */}
-                {currentPhotoData && (
-                  <div className={photoClassName} key={currentIndex}>
-                    <img
-                      src={currentPhotoData.url}
-                      alt={currentPhotoData.name || `Featured Photo ${currentIndex + 1}`}
-                      onError={(e) => e.target.src = '/images/placeholder.png'} // Fallback image
-                    />
-                    {/* Display category name if available */}
-                    {currentPhotoData.category && currentPhotoData.category !== "All" && (
-                       <p className="photo-category">{currentPhotoData.category}</p>
-                    )}
-                  </div>
-                )}
+        <div 
+          className="carousel-container"
+          onMouseEnter={pause}
+          onMouseLeave={resume}
+        >
+          <div className="carousel-body">
+            {status.state === 'loading' && (
+              <div className="status-overlay">
+                <FaSpinner className="spinner-icon" />
               </div>
+            )}
 
-              <button
-                className="carousel-btn next"
-                onClick={nextPhoto}
-                aria-label="Next Photo"
-                disabled={animate || filteredPhotos.length <= 1}
-              >
-                <FaChevronRight />
-              </button>
+            {status.state === 'error' && (
+              <div className="status-overlay">
+                <p className="error-text">{status.message}</p>
+              </div>
+            )}
 
-              {/* Optional: Dots for navigation */}
-               <div className="carousel-dots">
-                 {filteredPhotos.map((_, index) => (
-                   <button
-                     key={index}
-                     className={`dot ${index === currentIndex ? 'active' : ''}`}
-                     onClick={() => {
-                        // Direct navigation via dots
-                        if (!animate && index !== currentIndex) {
-                           setAnimate(true);
-                           setTimeout(() => {
-                               setCurrentIndex(index);
-                               setTimeout(() => setAnimate(false), 50);
-                           }, 500);
-                        }
-                     }}
-                     aria-label={`Go to photo ${index + 1}`}
-                   />
-                 ))}
-               </div>
+            {status.state === 'success' && photos.length > 0 && (
+              <>
+                {/* The key prop is crucial: it forces React to re-mount the component on change, which re-triggers the CSS animation */}
+                <div className="photo-display" key={currentPhoto?.url || currentIndex}>
+                  <img
+                    src={currentPhoto.url}
+                    alt={currentPhoto.name || `Featured Photo ${currentIndex + 1}`}
+                    onError={(e) => { e.target.style.display = 'none'; }} // Hide broken images
+                  />
+                  <div className="photo-info">
+                    <p className="photo-name">{currentPhoto.name}</p>
+                    {currentPhoto.category && <p className="photo-category">{currentPhoto.category}</p>}
+                  </div>
+                </div>
 
-            </div>
-          ) : (
-            // Show error message if fetching images failed or no images found
-            <div className="carousel-message error">
-              {error || `No photos available${activeCategory !== 'All' ? ` in the "${activeCategory}" category` : ''}.`}
-            </div>
-          )}
+                {photos.length > 1 && (
+                  <>
+                    <button className="carousel-btn prev" onClick={goToPrev} aria-label="Previous Photo">
+                      <FaChevronLeft />
+                    </button>
+                    <button className="carousel-btn next" onClick={goToNext} aria-label="Next Photo">
+                      <FaChevronRight />
+                    </button>
+                    <div className="carousel-dots">
+                      {photos.map((_, index) => (
+                        <button
+                          key={index}
+                          className={`dot ${index === currentIndex ? 'active' : ''}`}
+                          onClick={() => setCurrentIndex(index)}
+                          aria-label={`Go to photo ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </section>
