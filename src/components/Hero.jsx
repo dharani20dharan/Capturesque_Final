@@ -3,48 +3,38 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './Hero.css';
 
-// API details
 const API_BASE_URL = "http://150.230.138.173:8087";
-const HERO_FOLDER = "Hero"; // Folder name on server for Hero images
+const HERO_FOLDER = "Hero"; // Define the folder name
 
 const Hero = () => {
-  // State variables
-  const [images, setImages] = useState([]); // All fetched images
-  const [currentIndex, setCurrentIndex] = useState(0); // Currently displayed image
-  const [nextIndex, setNextIndex] = useState(1); // Next image in slideshow
-  const [isFading, setIsFading] = useState(false); // Fade animation trigger
-  const [error, setError] = useState(null); // API error messages
+  const [images, setImages] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [nextIndex, setNextIndex] = useState(1); // For crossfade
+  const [isFading, setIsFading] = useState(false); // Control fade state
+  const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true); // Loading state
 
-  /**
-   * Fetch hero section images from the API
-   * Runs once when the component mounts
-   */
+  // Fetch Images
   useEffect(() => {
     const fetchHeroImages = async () => {
       setIsLoading(true);
-      setError(null);
-
+      setError(null); // Reset error on fetch
       try {
         const response = await axios.get(`${API_BASE_URL}/api/images/${HERO_FOLDER}`);
-
-        // Validate API response
         if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-          // Preload images for smoother slideshow transitions
+          // Preload images slightly for smoother transition (optional but good)
           response.data.forEach(img => {
             const image = new Image();
             image.src = img.url;
           });
-
-          // Set image data & initial indices
           setImages(response.data);
           setCurrentIndex(0);
-          setNextIndex(response.data.length > 1 ? 1 : 0);
+          setNextIndex(response.data.length > 1 ? 1 : 0); // Set initial next index
         } else {
           setError("No images found for Hero section or invalid data format.");
         }
       } catch (error) {
-        console.error("API Error:", error);
+        console.error("API Error:", error); // Log the actual error
         setError(`Failed to load Hero images. ${error.message || 'Server might be down.'}`);
       } finally {
         setIsLoading(false);
@@ -52,52 +42,48 @@ const Hero = () => {
     };
 
     fetchHeroImages();
-  }, []);
+  }, []); // Fetch only once on mount
 
-  /**
-   * Slideshow & crossfade animation effect
-   * Runs when images are available and currentIndex changes
-   */
+  // Image Slideshow Timer & Crossfade Logic
   useEffect(() => {
-    if (images.length <= 1) return; // Skip if no slideshow needed
+    if (images.length <= 1) return; // No slideshow needed for 0 or 1 image
 
     const interval = setInterval(() => {
-      setIsFading(true); // Start fade-out animation
+      setIsFading(true); // Start fade-out of current image
 
-      // After fade duration, change image and reset fade
+      // After the fade duration, update indices and end fade
       const fadeTimer = setTimeout(() => {
         const newCurrentIndex = (currentIndex + 1) % images.length;
         setCurrentIndex(newCurrentIndex);
-        setNextIndex((newCurrentIndex + 1) % images.length);
-        setIsFading(false);
-      }, 1000); // Match CSS fade duration
+        setNextIndex((newCurrentIndex + 1) % images.length); // Prepare the next image
+        setIsFading(false); // End fade-out, new image is now visible
+      }, 1000); // Match this duration to CSS transition duration
 
-      // Cleanup fade timeout
+      // Clear timeout if component unmounts or images change
       return () => clearTimeout(fadeTimer);
 
-    }, 5000); // Time between image changes
+    }, 5000); // Time each image is fully visible (e.g., 5 seconds)
 
-    // Cleanup slideshow interval
+    // Clear interval on unmount or when images change
     return () => clearInterval(interval);
 
-  }, [images, currentIndex]);
+  }, [images, currentIndex]); // Rerun effect if images array or current index changes
 
-  // Current and next image URLs
+
+  // Determine URLs for current and next images
   const currentImageUrl = images[currentIndex]?.url;
-  const nextImageUrl = images.length > 1 ? images[nextIndex]?.url : currentImageUrl;
+  const nextImageUrl = images.length > 1 ? images[nextIndex]?.url : currentImageUrl; // Use current if only 1 image
 
   return (
     <section className="hero">
-      {/* Optional background layer */}
+      {/* Background Image Layer (Optional subtle movement) */}
       <div className="hero-background-image"></div>
 
-      {/* Dark gradient overlay */}
+      {/* Gradient Overlay */}
       <div className="hero-overlay"></div>
 
-      {/* Content & image container */}
-      <div className="hero-content-container">
-        
-        {/* Hero text content */}
+      {/* Content */}
+      <div className="hero-content-container"> {/* Added container for centering */}
         <div className="hero-content">
           <h1>Capture the Moment</h1>
           <p>Join our vibrant community, share your passion, and grow your skills.</p>
@@ -106,36 +92,32 @@ const Hero = () => {
           </Link>
         </div>
 
-        {/* Image slideshow area */}
         <div className="hero-image-container">
           {isLoading ? (
-            // Show loading text
             <div className="hero-loader">Loading Images...</div>
           ) : error ? (
-            // Show API error
             <div className="hero-error">{error}</div>
           ) : images.length > 0 ? (
             <div className="hero-slideshow">
-              {/* Current image (fading in or out) */}
+              {/* Render current image (potentially fading out) */}
               <img
-                key={currentIndex}
+                key={currentIndex} // Key helps React differentiate elements
                 src={currentImageUrl}
                 alt={`Hero Slide ${currentIndex + 1}`}
                 className={`hero-slide-image ${isFading ? 'fade-out' : 'fade-in'}`}
               />
-
-              {/* Preload next image (hidden) */}
-              {images.length > 1 && (
-                <img
-                  key={nextIndex}
-                  src={nextImageUrl}
-                  alt={`Hero Slide ${nextIndex + 1}`}
-                  className="hero-slide-image preload"
-                />
-              )}
+              {/* Preload next image (hidden but ready, potentially fading in) */}
+               {images.length > 1 && (
+                  <img
+                    key={nextIndex}
+                    src={nextImageUrl}
+                    alt={`Hero Slide ${nextIndex + 1}`}
+                    className="hero-slide-image preload" // Hidden by default
+                  />
+               )}
             </div>
           ) : (
-            // Fallback if no images found
+             // Fallback if no images and no error (shouldn't happen often with current logic)
             <div className="hero-error">No images available.</div>
           )}
         </div>
