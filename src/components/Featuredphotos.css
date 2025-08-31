@@ -41,7 +41,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: url('C:\Users\DHARANIDHARAN\Desktop\SNU\Additional\WebDev\Project1\Beta\PROJECT_2 (2)\PROJECT_2\capturesque_beta\src\Assets\bg3.jpg') no-repeat center center/cover;
+  background: url('C:\Users\DHARANIDHARAN\Desktop\Capturesque\my-react-app\src\Assets\bg3.jpg') no-repeat center center/cover;
   filter: brightness(0.6); /* Adjust brightness of the image itself */
   z-index: 1;
 }
