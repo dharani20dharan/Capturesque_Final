@@ -1,4 +1,3 @@
-
 from flask import Flask, jsonify, send_file, abort, render_template, send_from_directory, request
 from flask_cors import CORS
 import os
@@ -8,16 +7,10 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# CORS (frontend origin)
-CORS(app, supports_credentials=True, origins=["http://localhost:8000"])
-
-@app.after_request
-def add_cors_headers(response):
-    response.headers["Access-Control-Allow-Origin"] = "http://localhost:8000"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, DELETE"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
+# Allow all origins for CORS
+# This is a common setup for development and for APIs that are intended to be public.
+# The `supports_credentials=True` allows for cookies and authorization headers to be sent.
+CORS(app, supports_credentials=True)
 
 # Base directory for images
 BASE_PATH = "/home/ubuntu/Capturesque/Images"
@@ -314,5 +307,4 @@ def rename_file():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8087)
-
+    app.run(debug=True, host='0.0.0.0', port=5000)
