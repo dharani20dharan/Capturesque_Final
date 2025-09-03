@@ -1,3 +1,5 @@
+//utility functions to safely encode, normalize, and extract folder paths from image URLs returned by the backend.v
+
 export const encodePath = (path = '') =>
   path
     .split('/')
