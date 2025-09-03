@@ -95,10 +95,46 @@ const getRelFolderFromImageUrl = (url) => {
   }
 };
 
+// --- JWT helpers (for client-side UI gating only; backend must enforce) ---
+function base64UrlDecode(input) {
+  try {
+    const pad = '='.repeat((4 - (input.length % 4)) % 4);
+    const base64 = (input + pad).replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(base64);
+    // Handle UTF-8
+    try { return decodeURIComponent([...decoded].map(c => '%' + c.charCodeAt(0).toString(16).padStart(2,'0')).join('')); }
+    catch { return decoded; }
+  } catch {
+    return '';
+  }
+}
+
+function decodeJwt(token) {
+  if (!token || typeof token !== 'string' || token.split('.').length < 2) return null;
+  try {
+    const payload = token.split('.')[1];
+    const json = base64UrlDecode(payload);
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function getCurrentUser() {
+  const token = localStorage.getItem('token');
+  const userStoredValue = localStorage.getItem('userRole');
+  if (!token) return null;
+  const p = decodeJwt(token);
+  if (!p) return null;
+  // Normalize role flag; support { role: 'admin' } or { is_admin: true }
+  const role = p.role || (userStoredValue == "admin" ? 'admin' : 'user');
+  return { ...p, role, token };
+}
+
 /* ------------------
    Small reusable components (Modal, Toast)
 ------------------- */
-const ConfirmModal = ({ open, title, message, onConfirm, onCancel, loading }) => {
+const ConfirmModal = ({ open, title, message, onConfirm, onCancel, loading, confirmLabel = 'Delete' }) => {
   if (!open) return null;
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={onCancel}>
@@ -113,7 +149,7 @@ const ConfirmModal = ({ open, title, message, onConfirm, onCancel, loading }) =>
             Cancel
           </button>
           <button className="btn danger" onClick={onConfirm} disabled={loading}>
-            {loading ? <FaSpinner className="spinner-icon" /> : 'Delete'}
+            {loading ? <FaSpinner className="spinner-icon" /> : confirmLabel}
           </button>
         </div>
       </div>
@@ -144,7 +180,9 @@ export default function Gallery() {
 
   // auth reactivity (rerender on token change across tabs)
   const [, setAuthVersion] = useState(0);
-  const isLoggedIn = !!localStorage.getItem('token');
+  const user = getCurrentUser();
+  const isLoggedIn = !!user;
+  const isAdmin = !!(user && (user.role === 'admin' || user.is_admin === true));
 
   // modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -352,7 +390,7 @@ export default function Gallery() {
   };
 
   /* ------------------
-     Upload Logic
+     Upload Logic (admin only)
   ------------------- */
   const handleFileInputChange = (e) => {
     const files = Array.from(e.target.files || []);
@@ -361,6 +399,7 @@ export default function Gallery() {
   };
 
   const uploadFiles = async () => {
+    if (!isAdmin) return alert('Only admins can upload files.');
     if (!selectedFolder?.folderId || !selectedFiles.length) {
       alert(!selectedFolder?.folderId ? 'Select a folder first.' : 'No files selected.');
       return;
@@ -393,9 +432,10 @@ export default function Gallery() {
   };
 
   /* ------------------
-     Create Folder Logic
+     Folder Create/Rename/Delete (admin only)
   ------------------- */
   const createFolder = async (asRoot = true) => {
+    if (!isAdmin) return alert('Only admins can create folders.');
     const parentName = asRoot ? ROOT_FOLDER : selectedFolder?.folderName;
     let name = prompt(`Create a new folder under "${parentName}"`);
     if (!name?.trim()) return;
@@ -411,7 +451,38 @@ export default function Gallery() {
       alert(`Create folder failed: ${err.response?.data?.error || err.message}`);
     }
   };
-    
+
+  const renameFolder = async (folder) => {
+    if (!isAdmin) return alert('Only admins can rename folders.');
+    if (!folder?.folderId) return;
+    const currentName = folder.folderName;
+    const newName = prompt(`Rename folder "${currentName}" to:`);
+    if (!newName || newName.trim() === '' || newName === currentName) return;
+
+    try {
+      const url = `${API_BASE_URL}/api/rename-folder/${encodePath(folder.folderId)}`;
+      await axios.post(url, { newName }, { headers: getAuthHeaders() });
+      notify('Folder renamed');
+      if (selectedFolder?.folderId === folder.folderId) {
+        // If current folder was renamed, reopen it under new id
+        const parts = folder.folderId.split('/');
+        parts.pop();
+        const parent = parts.join('/');
+        await fetchSubfolders(parent);
+        const renamed = { folderName: newName, folderId: `${parent}/${newName}` };
+        setSelectedFolder(renamed);
+        await fetchImages(renamed.folderId);
+      } else {
+        // Refresh lists
+        const depthRelative = normalizePathParts(folder.folderId).length - rootParts.length;
+        if (depthRelative === 1) await fetchRootFolders();
+        else if (selectedFolder) await fetchSubfolders(selectedFolder.folderId);
+      }
+    } catch (err) {
+      alert(`Rename failed: ${err.response?.data?.error || err.message}`);
+    }
+  };
+
   // All other functions like downloadImage, delete logic, modals, etc remain here
   const downloadImage = async (image) => {
     if (!isLoggedIn) return alert('Please log in to download images.');
@@ -440,6 +511,7 @@ export default function Gallery() {
   };
 
   const downloadSelected = async () => {
+    if (!isLoggedIn) return notify('Log in to download images.');
     const toDownload = imagesAll.filter(i => selectedIds.has(i.id));
     if (!toDownload.length) return notify('No images selected.');
     for (const img of toDownload) {
@@ -451,11 +523,13 @@ export default function Gallery() {
   };
 
   const requestDeleteImage = (image) => {
+    if (!isAdmin) return alert('Only admins can delete images.');
     setDeleteTarget({ image, folderId: selectedFolder?.folderId });
     setConfirmOpen(true);
   };
     
   const requestDeleteSelected = () => {
+    if (!isAdmin) return alert('Only admins can delete images.');
     const images = imagesAll.filter(i => selectedIds.has(i.id));
     if (!images.length) return notify('No images selected');
     setDeleteTarget({ images, folderId: selectedFolder?.folderId });
@@ -463,6 +537,7 @@ export default function Gallery() {
   };
 
   const requestDeleteFolder = (folder) => {
+    if (!isAdmin) return alert('Only admins can delete folders.');
     setDeleteTarget({ type: 'folder', ...folder });
     setConfirmOpen(true);
   };
@@ -518,6 +593,7 @@ export default function Gallery() {
   const closeModal = () => setIsModalOpen(false);
 
   const toggleSelectMode = () => {
+    if (!isLoggedIn) return notify('Log in to use selection actions.');
     setSelectMode(!selectMode);
     setSelectedIds(new Set());
   };
@@ -529,31 +605,45 @@ export default function Gallery() {
     setSelectedIds(newIds);
   };
     
-    const copyImageLink = (image) => {
-        // Implementation for copying link
-        navigator.clipboard.writeText(image.url).then(() => notify('Link copied!'));
-    };
+  const copyImageLink = (image) => {
+    navigator.clipboard.writeText(image.url).then(() => notify('Link copied!'));
+  };
 
-    const renameImage = (image) => {
-        alert('Rename functionality is not implemented.');
-    };
+  const renameImage = async (image) => {
+    if (!isAdmin) return alert('Only admins can rename images.');
+    if (!image?.name || !selectedFolder?.folderId) return;
+    const newName = prompt(`Rename image "${image.name}" to:`);
+    if (!newName || newName.trim() === '' || newName === image.name) return;
 
-    const refreshCurrent = async () => {
-        if (selectedFolder) {
-          await fetchImages(selectedFolder.folderId);
-        } else {
-          await fetchRootFolders();
-        }
-        notify('Refreshed');
-    };
+    try {
+      const url = `${API_BASE_URL}/api/rename-image/${encodePath(selectedFolder.folderId)}/${encodeURIComponent(image.name)}`;
+      await axios.post(url, { newName }, { headers: getAuthHeaders() });
+      notify('Image renamed');
+      await fetchImages(selectedFolder.folderId);
+      setSelectedImage((prev) => prev ? { ...prev, name: newName } : prev);
+    } catch (err) {
+      alert(`Rename failed: ${err.response?.data?.error || err.message}`);
+    }
+  };
 
-    const selectAll = () => setSelectedIds(new Set(imagesVisible.map(i => i.id)));
-    const clearSelection = () => setSelectedIds(new Set());
-    const loadMore = () => setVisibleCount(c => c + PAGE_SIZE);
+  const refreshCurrent = async () => {
+    if (selectedFolder) {
+      await fetchImages(selectedFolder.folderId);
+      const depthRelative = normalizePathParts(selectedFolder.folderId).length - rootParts.length;
+      if (depthRelative === 1) await fetchSubfolders(selectedFolder.folderId);
+    } else {
+      await fetchRootFolders();
+    }
+    notify('Refreshed');
+  };
 
-    const visibleFoldersFiltered = folders.filter(f => 
-        f.folderName.toLowerCase().includes(folderSearch.trim().toLowerCase())
-    );
+  const selectAll = () => setSelectedIds(new Set(imagesVisible.map(i => i.id)));
+  const clearSelection = () => setSelectedIds(new Set());
+  const loadMore = () => setVisibleCount(c => c + PAGE_SIZE);
+
+  const visibleFoldersFiltered = folders.filter(f => 
+    f.folderName.toLowerCase().includes(folderSearch.trim().toLowerCase())
+  );
 
   /* ------------------
      Render
@@ -568,7 +658,12 @@ export default function Gallery() {
                 <>
                 <button className="back-btn" onClick={goUpOneLevel}><FaArrowLeft /> Up</button>
                 <div>
-                    <h2 className="gallery-title">{selectedFolder.folderName}</h2>
+                    <h2 className="gallery-title" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      {selectedFolder.folderName}
+                      {isAdmin && (
+                        <button className="btn small" title="Rename folder" onClick={() => renameFolder(selectedFolder)}><FaPen /></button>
+                      )}
+                    </h2>
                     <div className="text-muted" style={{ fontSize: '0.9rem' }}>
                     {selectedFolder.folderId}
                     <button className="btn small" style={{ marginLeft: 10 }} onClick={refreshCurrent} title="Refresh"><FaRedo /></button>
@@ -577,8 +672,10 @@ export default function Gallery() {
                 </>
             ) : (
                 <>
-                <h2 className="gallery-title">{ROOT_FOLDER}</h2>
-                <button className="btn" onClick={() => createFolder(true)}><FaFolderPlus /> New folder</button>
+                <h2 className="gallery-title" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  {ROOT_FOLDER}
+                </h2>
+                {isAdmin && <button className="btn" onClick={() => createFolder(true)}><FaFolderPlus /> New folder</button>}
                 </>
             )}
             </div>
@@ -591,7 +688,9 @@ export default function Gallery() {
                     </div>
                 ) : (
                     <>
-                    <button className="btn small" onClick={toggleSelectMode} title="Toggle select mode">{selectMode ? <FaCheckSquare /> : <FaSquare />} Select</button>
+                    {isLoggedIn && (
+                      <button className="btn small" onClick={toggleSelectMode} title="Toggle select mode">{selectMode ? <FaCheckSquare /> : <FaSquare />} Select</button>
+                    )}
                     <button className="btn small" onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')} title="Toggle view">{viewMode === 'grid' ? <FaList /> : <FaColumns />}</button>
                     </>
                 )}
@@ -604,8 +703,13 @@ export default function Gallery() {
             {visibleFoldersFiltered.map(folder => (
               <div key={folder.folderId} className="folder-card" onClick={() => openFolder(folder)} role="button" tabIndex={0}>
                 <FaFolder className="folder-icon" />
-                <h3 className="folder-name">{folder.folderName}</h3>
-                {isLoggedIn && <button className="btn small danger folder-delete-btn" onClick={e => {e.stopPropagation(); requestDeleteFolder(folder);}}><FaTrashAlt /></button>}
+                <h3 className="folder-name" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  {folder.folderName}
+                  {isAdmin && (
+                    <button className="btn small" title="Rename" onClick={(e) => { e.stopPropagation(); renameFolder(folder); }}><FaPen /></button>
+                  )}
+                </h3>
+                {isAdmin && <button className="btn small danger folder-delete-btn" onClick={e => {e.stopPropagation(); requestDeleteFolder(folder);}}><FaTrashAlt /></button>}
               </div>
             ))}
           </div>
@@ -617,32 +721,39 @@ export default function Gallery() {
                     {subfolders.map(sf => (
                         <div key={sf.folderId} className="folder-card" onClick={() => openFolder(sf)} style={{minHeight: 120}}>
                            <FaFolder className="folder-icon"/>
-                           <h4 className="folder-name">{sf.folderName}</h4>
-                           {isLoggedIn && <button className="btn small danger folder-delete-btn" onClick={e => {e.stopPropagation(); requestDeleteFolder(sf);}}><FaTrashAlt /></button>}
+                           <h4 className="folder-name" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                             {sf.folderName}
+                             {isAdmin && (
+                               <button className="btn small" title="Rename" onClick={(e) => { e.stopPropagation(); renameFolder(sf); }}><FaPen /></button>
+                             )}
+                           </h4>
+                           {isAdmin && <button className="btn small danger folder-delete-btn" onClick={e => {e.stopPropagation(); requestDeleteFolder(sf);}}><FaTrashAlt /></button>}
                         </div>
                     ))}
                  </div>
             )}
-            {/* Upload Area */}
-            <UploadArea
-              fileInputRef={fileInputRef}
-              onFileInputChange={handleFileInputChange}
-              filePreviews={filePreviews}
-              selectedFiles={selectedFiles}
-              onSelectFiles={() => fileInputRef.current?.click()}
-              onUpload={uploadFiles}
-              onCreateSubfolder={() => createFolder(false)}
-              selectedFolder={selectedFolder}
-              isUploading={loading && uploadProgress.overall > 0}
-              uploadProgress={uploadProgress}
-            />
+            {/* Upload Area (Admin only) */}
+            {isAdmin && (
+              <UploadArea
+                fileInputRef={fileInputRef}
+                onFileInputChange={handleFileInputChange}
+                filePreviews={filePreviews}
+                selectedFiles={selectedFiles}
+                onSelectFiles={() => fileInputRef.current?.click()}
+                onUpload={uploadFiles}
+                onCreateSubfolder={() => createFolder(false)}
+                selectedFolder={selectedFolder}
+                isUploading={loading && uploadProgress.overall > 0}
+                uploadProgress={uploadProgress}
+              />
+            )}
             {/* Selection Action Bar */}
             {selectMode && (
               <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button className="btn" onClick={selectAll}>Select visible</button>
                 <button className="btn" onClick={clearSelection}>Clear</button>
-                <button className="btn danger" onClick={requestDeleteSelected}><FaTrashAlt /> Delete</button>
-                <button className="btn" onClick={downloadSelected}><FaDownload /> Download</button>
+                {isAdmin && <button className="btn danger" onClick={requestDeleteSelected}><FaTrashAlt /> Delete</button>}
+                {isLoggedIn && <button className="btn" onClick={downloadSelected}><FaDownload /> Download</button>}
                 <div style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>{selectedIds.size} selected</div>
               </div>
             )}
@@ -660,7 +771,7 @@ export default function Gallery() {
                         <img src={image.thumbnail} alt={image.name} loading="lazy" onError={e => e.currentTarget.src = FALLBACK_IMG} />
                         <div className="image-overlay" />
                         {selectMode ? <div className="image-select-checkbox">{selectedIds.has(image.id) ? <FaCheckSquare /> : <FaSquare />}</div> :
-                        isLoggedIn && <button className="image-delete-btn" onClick={e => {e.stopPropagation(); requestDeleteImage(image);}}><FaTrashAlt /></button>}
+                        isAdmin && <button className="image-delete-btn" onClick={e => {e.stopPropagation(); requestDeleteImage(image);}}><FaTrashAlt /></button>}
                     </div>
                     ))}
                 </div>
@@ -686,17 +797,27 @@ export default function Gallery() {
             <button className="modal-close-btn" onClick={closeModal} aria-label="Close"><FaTimes /></button>
             <img className="modal-image" src={selectedImage.url} alt={selectedImage.name} onError={e => e.currentTarget.src = FALLBACK_IMG} />
             <div className="modal-actions">
-              <button className="modal-download-btn" onClick={() => downloadImage(selectedImage)}><FaDownload /> Download</button>
-              <button className="btn small" onClick={() => copyImageLink(selectedImage)}><FaLink /></button>
-              <button className="btn small" onClick={() => renameImage(selectedImage)}><FaPen /></button>
+              {isLoggedIn && <button className="modal-download-btn" onClick={() => downloadImage(selectedImage)}><FaDownload /> Download</button>}
+              <button className="btn small" onClick={() => copyImageLink(selectedImage)} title="Copy link"><FaLink /></button>
+              {isAdmin && <button className="btn small" onClick={() => renameImage(selectedImage)} title="Rename"><FaPen /></button>}
               <div style={{ flex: 1 }}></div>
-              <button className="btn danger small" onClick={() => requestDeleteImage(selectedImage)}><FaTrashAlt /> Delete</button>
+              {isAdmin && <button className="btn danger small" onClick={() => requestDeleteImage(selectedImage)}><FaTrashAlt /> Delete</button>}
             </div>
           </div>
         </div>
       )}
       
-      <ConfirmModal open={confirmOpen} title={deleteTarget?.type === 'folder' ? 'Delete Folder' : 'Delete Item(s)'} message={`Are you sure you want to delete ${deleteTarget?.images?.length || 1} item(s)? This cannot be undone.`} onConfirm={confirmDelete} onCancel={() => setConfirmOpen(false)} loading={deleteLoading} />
+      <ConfirmModal
+        open={confirmOpen}
+        title={deleteTarget?.type === 'folder' ? 'Delete Folder' : 'Delete Item(s)'}
+        message={deleteTarget?.type === 'folder'
+          ? `Are you sure you want to delete the folder "${deleteTarget?.folderName}" and all its contents? This cannot be undone.`
+          : `Are you sure you want to delete ${deleteTarget?.images?.length || 1} item(s)? This cannot be undone.`}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmOpen(false)}
+        loading={deleteLoading}
+        confirmLabel={deleteTarget?.type === 'folder' ? 'Delete folder' : 'Delete'}
+      />
       <Toast message={toast} />
     </div>
   );
@@ -704,7 +825,6 @@ export default function Gallery() {
 
 // UploadArea Component (defined in the same file)
 function UploadArea({ fileInputRef, onFileInputChange, filePreviews, selectedFiles, onSelectFiles, onUpload, onCreateSubfolder, selectedFolder, isUploading, uploadProgress }) {
-    // ... JSX and logic for UploadArea ...
     return (
     <div style={{ marginTop: 18, padding: 14, borderRadius: 8, border: '1px dashed grey', background: 'transparent' }}>
         <input ref={fileInputRef} type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={onFileInputChange} />
@@ -725,6 +845,11 @@ function UploadArea({ fileInputRef, onFileInputChange, filePreviews, selectedFil
                     <div style={{ width: `${uploadProgress.overall}%`, height: '100%', background: 'var(--accent-primary)', borderRadius: 4 }} />
                 </div>
             </div>
+        )}
+        {selectedFolder && (
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
+            Uploading to: <strong>{selectedFolder.folderId}</strong>
+          </div>
         )}
     </div>
     );
