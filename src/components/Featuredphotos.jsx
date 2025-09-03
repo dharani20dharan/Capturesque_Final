@@ -82,7 +82,7 @@ const Featuredphotos = () => {
           }
 
           const imagePromises = subfolders.map(folder => {
-            const path = `${FEATURE_FOLDER}_${encodeURIComponent(folder)}`;
+            const path = `${FEATURE_FOLDER}/${encodeURIComponent(folder)}`;
             return axios.get(`${API_BASE_URL}/api/images/${path}`).then(res => 
               // Add category metadata to each photo object
               (res.data || []).map(photo => ({ ...photo, category: folder }))
@@ -93,7 +93,7 @@ const Featuredphotos = () => {
           fetchedImages = results.flat();
 
         } else {
-          const path = `${FEATURE_FOLDER}_${encodeURIComponent(activeCategory)}`;
+          const path = `${FEATURE_FOLDER}/${encodeURIComponent(activeCategory)}`;
           const response = await axios.get(`${API_BASE_URL}/api/images/${path}`);
           fetchedImages = (response.data || []).map(photo => ({ ...photo, category: activeCategory }));
         }
