@@ -3,10 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
-import Gallery from "./pages/Gallery";
+import Gallery from "./component/Gallery/Gallery.jsx";
 import Login from "./pages/Login";
 import ClubInfo from "./pages/ClubInfo";
-import Contests from "./pages/Contests";
+import Contests from "./pages/Contests.jsx";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
