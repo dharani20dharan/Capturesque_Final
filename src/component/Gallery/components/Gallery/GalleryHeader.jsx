@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaArrowLeft, FaFolderPlus, FaSearch, FaCheckSquare, FaSquare, FaList, FaColumns, FaPen, FaRedo } from 'react-icons/fa';
-import { ROOT_FOLDER } from '../../../config';
+import { ROOT_FOLDER } from '../../config';
 
 const GalleryHeader = ({
   selectedFolder,

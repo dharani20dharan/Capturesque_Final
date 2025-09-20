@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { FaTimes, FaDownload, FaLink, FaPen, FaTrashAlt } from 'react-icons/fa';
-import { FALLBACK_IMG } from '../../../config';
+import { FALLBACK_IMG } from '../../config';
 
 const ImageModal = ({
   open,

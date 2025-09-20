@@ -1,16 +1,30 @@
+// Gallery.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { FaSpinner, FaExclamationTriangle, FaCheckSquare, FaSquare, FaDownload, FaTrashAlt } from 'react-icons/fa';
+import { FaSpinner, FaExclamationTriangle, FaDownload, FaTrashAlt } from 'react-icons/fa';
 import './Gallery.css';
-import { API_BASE_URL, ROOT_FOLDER, PAGE_SIZE, FALLBACK_IMG } from '../config';
+import { API_BASE_URL, ROOT_FOLDER, PAGE_SIZE, FALLBACK_IMG } from './config.js';
 import { getCurrentUser, encodePath, normalizePathParts, getRelFolderFromImageUrl } from './helper.js';
+
 import ConfirmModal from './components/Gallery/ConfirmModal.jsx';
 import Toast from './components/Gallery/Toast.jsx';
 import UploadArea from './components/Gallery/UploadArea.jsx';
-import ImageModal from './components/Gallery/ImageModal';
+import ImageModal from './components/Gallery/ImageModal.jsx';
 import ImageGrid from './components/Gallery/ImageGrid.jsx';
 import GalleryHeader from './components/Gallery/GalleryHeader.jsx';
 import FolderCard from './components/Gallery/FolderCard.jsx';
+
+// modular functions (from components/Gallery)
+import GetAuthHeaders from './components/Gallery/GetAuthHeaders.jsx';
+import FetchRootFolders from './components/Gallery/FetchRootFolders.jsx';
+import FetchImages from './components/Gallery/FetchImages.jsx';
+import UploadFiles from './components/Gallery/UploadFiles.jsx';
+import ConfirmDelete from './components/Gallery/ConfirmDelete.jsx';
+
+// helpers
+import fetchSubfolders from './components/Gallery/helpers/FetchSubFolders.jsx';
+import { downloadImage as helperDownloadImage, renameImage as helperRenameImage } from './components/Gallery/helpers/ImageActions.jsx';
+import { toggleSelectImageHelper, selectAllHelper, clearSelectionHelper } from './components/Gallery/helpers/Selection.jsx';
 
 export default function Gallery() {
   const [folders, setFolders] = useState([]);
@@ -50,7 +64,39 @@ export default function Gallery() {
   const rootParts = normalizePathParts(ROOT_FOLDER);
 
   /* ------------------
-    Mount / Unmount
+     Modular wrappers
+  ------------------- */
+  const fetchRootFolders = useCallback(() => {
+    return FetchRootFolders({ setLoading, setError, setFolders });
+  }, []);
+
+  const fetchImages = useCallback((folderId) => {
+    return FetchImages({
+      folderId,
+      setLoading,
+      setError,
+      setImagesAll,
+      setVisibleCount,
+      setSelectedIds,
+    });
+  }, []);
+
+  const uploadFiles = useCallback(async () => {
+    await UploadFiles({
+      isAdmin,
+      selectedFolder,
+      selectedFiles,
+      setLoading,
+      setUploadProgress,
+      setSelectedFiles,
+      setFilePreviews,
+      notify,
+      fetchImages,
+    });
+  }, [isAdmin, selectedFolder, selectedFiles, notify, fetchImages]);
+
+  /* ------------------
+     Mount / Unmount
   ------------------- */
   useEffect(() => {
     fetchRootFolders();
@@ -61,7 +107,7 @@ export default function Gallery() {
       window.removeEventListener('storage', onAuthEvent);
       window.removeEventListener('authChange', onAuthEvent);
     };
-  }, []);
+  }, [fetchRootFolders]);
 
   useEffect(() => {
     return () => {
@@ -74,7 +120,7 @@ export default function Gallery() {
   }, [filePreviews]);
 
   /* ------------------
-    Data Filtering & Sorting
+     Data Filtering & Sorting
   ------------------- */
   useEffect(() => {
     let arr = [...imagesAll];
@@ -98,91 +144,14 @@ export default function Gallery() {
   }, [imagesAll, visibleCount, sortOrder, extFilter]);
 
   /* ------------------
-    API Helpers
+     Local helpers (use helper modules)
   ------------------- */
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
+  const fetchSubfoldersLocal = async (folderId) => {
+    await fetchSubfolders(folderId, setSubfolders);
   };
 
   /* ------------------
-    Folder Logic
-  ------------------- */
-  const fetchRootFolders = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/folders/${encodePath(ROOT_FOLDER)}`);
-      if (res?.data?.subfolders && Array.isArray(res.data.subfolders)) {
-        const list = res.data.subfolders.map((name) => ({
-          folderName: name,
-          folderId: `${ROOT_FOLDER}/${name}`,
-        }));
-        setFolders(list);
-      }
-    } catch (err) {
-      console.error('Failed to fetch root folders', err);
-      setError('Failed to load folders.');
-      setFolders([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSubfolders = async (folderId) => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/folders/${encodePath(folderId)}`);
-      if (res?.data?.subfolders && Array.isArray(res.data.subfolders)) {
-        setSubfolders(
-          res.data.subfolders.map((name) => ({ folderName: name, folderId: `${folderId}/${name}` }))
-        );
-      }
-    } catch (err) {
-      console.warn('fetchSubfolders failed', err?.message || err);
-      setSubfolders([]);
-    }
-  };
-
-  /* ------------------
-    Image Logic
-  ------------------- */
-  const fetchImages = useCallback(async (folderId) => {
-    if (!folderId) return;
-    setLoading(true);
-    setError(null);
-    setImagesAll([]);
-    setVisibleCount(PAGE_SIZE);
-    setSelectedIds(new Set());
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/images/${encodePath(folderId)}`);
-      let data = response.data?.images || response.data || [];
-      if (!Array.isArray(data)) data = [];
-      const selParts = normalizePathParts(folderId);
-      const filtered = data
-        .filter((img) => {
-          const rel = getRelFolderFromImageUrl(img.url || img.thumbnail || '');
-          const relParts = normalizePathParts(rel);
-          return relParts.length === selParts.length && relParts.every((p, i) => p === selParts[i]);
-        })
-        .map((img, idx) => ({
-          id: img.id || img.name || `img-${idx}`,
-          name: img.name || `image_${idx}`,
-          url: img.url || img.thumbnail,
-          thumbnail: img.thumbnail || img.url,
-          raw: img,
-        }));
-      setImagesAll(filtered);
-      if (!filtered.length) setError('No images found in this folder.');
-    } catch (err) {
-      console.error('Failed to load images:', err);
-      setError(`Failed to load images (${err.message || 'Server error'})`);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /* ------------------
-    Navigation
+     Navigation
   ------------------- */
   const openFolder = async (folder) => {
     setSelectedFolder(folder);
@@ -190,7 +159,7 @@ export default function Gallery() {
     setSubfolders([]);
     await fetchImages(folder.folderId);
     const depthRelative = normalizePathParts(folder.folderId).length - rootParts.length;
-    if (depthRelative === 1) await fetchSubfolders(folder.folderId);
+    if (depthRelative === 1) await fetchSubfoldersLocal(folder.folderId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -211,7 +180,7 @@ export default function Gallery() {
   };
 
   /* ------------------
-    Upload Logic (admin only)
+     Upload Logic (admin only)
   ------------------- */
   const handleFileInputChange = (e) => {
     const files = Array.from(e.target.files || []);
@@ -219,40 +188,12 @@ export default function Gallery() {
     setFilePreviews(files.map(f => ({ name: f.name, url: URL.createObjectURL(f) })));
   };
 
-  const uploadFiles = async () => {
-    if (!isAdmin) return alert('Only admins can upload files.');
-    if (!selectedFolder?.folderId || !selectedFiles.length) {
-      alert(!selectedFolder?.folderId ? 'Select a folder first.' : 'No files selected.');
-      return;
-    }
-    const url = `${API_BASE_URL}/api/upload/${encodePath(selectedFolder.folderId)}`;
-    const formData = new FormData();
-    selectedFiles.forEach(f => formData.append('file', f));
-    setLoading(true);
-    setUploadProgress({ overall: 0 });
-    try {
-      const resp = await axios.post(url, formData, {
-        headers: getAuthHeaders(),
-        onUploadProgress: (ev) => {
-          const percent = Math.round((ev.loaded / (ev.total || 1)) * 100);
-          setUploadProgress({ overall: percent });
-        },
-      });
-      notify(`Uploaded ${resp.data?.files?.length || 0} file(s).`);
-      setSelectedFiles([]);
-      setFilePreviews([]);
-      setUploadProgress({});
-      await fetchImages(selectedFolder.folderId);
-    } catch (err) {
-      alert(`Upload failed: ${err.response?.data?.error || err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   /* ------------------
-    Folder Create/Rename/Delete (admin only)
+     Folder Create/Rename/Delete (admin only)
+     Use imported GetAuthHeaders for auth header retrieval
   ------------------- */
+  const getAuthHeaders = GetAuthHeaders;
+
   const createFolder = async (asRoot = true) => {
     if (!isAdmin) return alert('Only admins can create folders.');
     const parentName = asRoot ? ROOT_FOLDER : selectedFolder?.folderName;
@@ -264,7 +205,7 @@ export default function Gallery() {
       const res = await axios.post(url, null, { headers: getAuthHeaders() });
       notify(res.data?.message || 'Folder created');
       if (asRoot) await fetchRootFolders();
-      else await fetchSubfolders(selectedFolder.folderId);
+      else await fetchSubfoldersLocal(selectedFolder.folderId);
     } catch (err) {
       alert(`Create folder failed: ${err.response?.data?.error || err.message}`);
     }
@@ -284,42 +225,25 @@ export default function Gallery() {
         const parts = folder.folderId.split('/');
         parts.pop();
         const parent = parts.join('/');
-        await fetchSubfolders(parent);
+        await fetchSubfoldersLocal(parent);
         const renamed = { folderName: newName, folderId: `${parent}/${newName}` };
         setSelectedFolder(renamed);
         await fetchImages(renamed.folderId);
       } else {
         const depthRelative = normalizePathParts(folder.folderId).length - rootParts.length;
         if (depthRelative === 1) await fetchRootFolders();
-        else if (selectedFolder) await fetchSubfolders(selectedFolder.folderId);
+        else if (selectedFolder) await fetchSubfoldersLocal(selectedFolder.folderId);
       }
     } catch (err) {
       alert(`Rename failed: ${err.response?.data?.error || err.message}`);
     }
   };
 
+  /* ------------------
+     Image actions (use helpers)
+  ------------------- */
   const downloadImage = async (image) => {
-    if (!isLoggedIn) return alert('Please log in to download images.');
-    if (!image.name || !selectedFolder?.folderId) return alert('Error: Missing image data.');
-    const downloadPath = `${encodePath(selectedFolder.folderId)}/${encodeURIComponent(image.name)}`;
-    const downloadUrl = `${API_BASE_URL}/api/download/${downloadPath}`;
-    try {
-      const response = await axios.get(downloadUrl, {
-        headers: getAuthHeaders(),
-        responseType: 'blob',
-      });
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.setAttribute('download', image.name);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
-      notify('Download started');
-    } catch (err) {
-      alert(`Download failed: ${err.message}`);
-    }
+    await helperDownloadImage({ image, selectedFolder, notify, isLoggedIn });
   };
 
   const downloadSelected = async () => {
@@ -352,39 +276,26 @@ export default function Gallery() {
     setConfirmOpen(true);
   };
 
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    try {
-      if (deleteTarget.type === 'folder') {
-        const url = `${API_BASE_URL}/api/folders/${encodePath(deleteTarget.folderId)}`;
-        await axios.delete(url, { headers: getAuthHeaders() });
-        notify('Folder deleted');
-        if (selectedFolder?.folderId === deleteTarget.folderId) {
-          goUpOneLevel();
-        } else {
-          fetchRootFolders();
-        }
-      } else {
-        const items = deleteTarget.images || [deleteTarget.image];
-        const promises = items.map(img => {
-          const url = `${API_BASE_URL}/api/delete/${encodePath(deleteTarget.folderId)}/${encodeURIComponent(img.name)}`;
-          return axios.delete(url, { headers: getAuthHeaders() });
-        });
-        await Promise.all(promises);
-        notify(`Deleted ${items.length} image(s).`);
-        await fetchImages(deleteTarget.folderId);
-        if (deleteTarget.images) setSelectMode(false);
-      }
-    } catch (err) {
-      alert(`Delete failed: ${err.response?.data?.error || err.message}`);
-    } finally {
-      setDeleteTarget(null);
-      setConfirmOpen(false);
-      setDeleteLoading(false);
-    }
-  };
+  /* ------------------
+     confirmDelete wrapper (uses modular ConfirmDelete)
+  ------------------- */
+  const confirmDelete = useCallback(async () => {
+    await ConfirmDelete({
+      deleteTarget,
+      setDeleteLoading,
+      setDeleteTarget,
+      setConfirmOpen,
+      notify,
+      fetchImages,
+      fetchRootFolders,
+      goUpOneLevel,
+      setSelectMode,
+    });
+  }, [deleteTarget, notify, fetchImages, fetchRootFolders, goUpOneLevel]);
 
+  /* ------------------
+     Modal / selection helpers (use selection helpers)
+  ------------------- */
   const openModal = (image) => {
     setSelectedImage(image);
     setIsModalOpen(true);
@@ -399,10 +310,7 @@ export default function Gallery() {
   };
 
   const toggleSelectImage = (id) => {
-    const newIds = new Set(selectedIds);
-    if (newIds.has(id)) newIds.delete(id);
-    else newIds.add(id);
-    setSelectedIds(newIds);
+    toggleSelectImageHelper(id, selectedIds, setSelectedIds);
   };
 
   const copyImageLink = (image) => {
@@ -410,34 +318,22 @@ export default function Gallery() {
   };
 
   const renameImage = async (image) => {
-    if (!isAdmin) return alert('Only admins can rename images.');
-    if (!image?.name || !selectedFolder?.folderId) return;
-    const newName = prompt(`Rename image "${image.name}" to:`);
-    if (!newName || newName.trim() === '' || newName === image.name) return;
-    try {
-      const url = `${API_BASE_URL}/api/rename-image/${encodePath(selectedFolder.folderId)}/${encodeURIComponent(image.name)}`;
-      await axios.post(url, { newName }, { headers: getAuthHeaders() });
-      notify('Image renamed');
-      await fetchImages(selectedFolder.folderId);
-      setSelectedImage((prev) => prev ? { ...prev, name: newName } : prev);
-    } catch (err) {
-      alert(`Rename failed: ${err.response?.data?.error || err.message}`);
-    }
+    await helperRenameImage({ image, selectedFolder, notify, fetchImages, setSelectedImage, isAdmin });
   };
 
   const refreshCurrent = async () => {
     if (selectedFolder) {
       await fetchImages(selectedFolder.folderId);
       const depthRelative = normalizePathParts(selectedFolder.folderId).length - rootParts.length;
-      if (depthRelative === 1) await fetchSubfolders(selectedFolder.folderId);
+      if (depthRelative === 1) await fetchSubfoldersLocal(selectedFolder.folderId);
     } else {
       await fetchRootFolders();
     }
     notify('Refreshed');
   };
 
-  const selectAll = () => setSelectedIds(new Set(imagesVisible.map(i => i.id)));
-  const clearSelection = () => setSelectedIds(new Set());
+  const selectAll = () => selectAllHelper(imagesVisible, setSelectedIds);
+  const clearSelection = () => clearSelectionHelper(setSelectedIds);
   const loadMore = () => setVisibleCount(c => c + PAGE_SIZE);
 
   const visibleFoldersFiltered = folders.filter(f =>
@@ -460,7 +356,7 @@ export default function Gallery() {
           viewMode={viewMode}
           isAdmin={isAdmin}
           isLoggedIn={isLoggedIn}
-          selectedIds={selectedIds} 
+          selectedIds={selectedIds}
         />
         {selectedFolder ? (
           <>
@@ -538,6 +434,7 @@ export default function Gallery() {
           </div>
         )}
       </div>
+
       <ImageModal
         open={isModalOpen}
         image={selectedImage}
@@ -549,6 +446,7 @@ export default function Gallery() {
         isLoggedIn={isLoggedIn}
         isAdmin={isAdmin}
       />
+
       <ConfirmModal
         open={confirmOpen}
         title={deleteTarget?.type === 'folder' ? 'Delete Folder' : 'Delete Item(s)'}
@@ -560,6 +458,7 @@ export default function Gallery() {
         loading={deleteLoading}
         confirmLabel={deleteTarget?.type === 'folder' ? 'Delete folder' : 'Delete'}
       />
+
       <Toast message={toast} />
     </div>
   );

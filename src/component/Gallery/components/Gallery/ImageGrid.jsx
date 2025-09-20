@@ -1,6 +1,6 @@
 import React from 'react';
 import { FaCheckSquare, FaSquare, FaTrashAlt } from 'react-icons/fa';
-import { FALLBACK_IMG } from '../../../config';
+import { FALLBACK_IMG } from '../../config';
 
 const ImageGrid = ({ images, selectMode, selectedIds, onImageClick, onImageDelete, isAdmin }) => {
   return (
