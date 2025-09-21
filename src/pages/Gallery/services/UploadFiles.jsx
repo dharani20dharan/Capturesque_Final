@@ -1,8 +1,8 @@
 // uploadFiles.js
 import axios from 'axios';
-import { API_BASE_URL } from "../../config.js";
-import { encodePath } from "../../helper.js";
-import getAuthHeaders from "./GetAuthHeaders.jsx"; // same folder, so ./ is fine
+import { API_BASE_URL } from "../config.js";
+import { encodePath } from "../helper.js";
+import getAuthHeaders from "../components/GetAuthHeaders.jsx"; // same folder, so ./ is fine
 
 export default async function uploadFilesFn({
   isAdmin,

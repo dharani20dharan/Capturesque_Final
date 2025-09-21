@@ -6,25 +6,25 @@ import './Gallery.css';
 import { API_BASE_URL, ROOT_FOLDER, PAGE_SIZE, FALLBACK_IMG } from './config.js';
 import { getCurrentUser, encodePath, normalizePathParts, getRelFolderFromImageUrl } from './helper.js';
 
-import ConfirmModal from './components/Gallery/ConfirmModal.jsx';
-import Toast from './components/Gallery/Toast.jsx';
-import UploadArea from './components/Gallery/UploadArea.jsx';
-import ImageModal from './components/Gallery/ImageModal.jsx';
-import ImageGrid from './components/Gallery/ImageGrid.jsx';
-import GalleryHeader from './components/Gallery/GalleryHeader.jsx';
-import FolderCard from './components/Gallery/FolderCard.jsx';
+import ConfirmModal from './components/ConfirmModal.jsx';
+import Toast from './components/Toast.jsx';
+import UploadArea from './components/UploadArea.jsx';
+import ImageModal from './components/ImageModal.jsx';
+import ImageGrid from './components/ImageGrid.jsx';
+import GalleryHeader from './components/GalleryHeader.jsx';
+import FolderCard from './components/FolderCard.jsx';
 
 // modular functions (from components/Gallery)
-import GetAuthHeaders from './components/Gallery/GetAuthHeaders.jsx';
-import FetchRootFolders from './components/Gallery/FetchRootFolders.jsx';
-import FetchImages from './components/Gallery/FetchImages.jsx';
-import UploadFiles from './components/Gallery/UploadFiles.jsx';
-import ConfirmDelete from './components/Gallery/ConfirmDelete.jsx';
+import GetAuthHeaders from './components/GetAuthHeaders.jsx';
+import FetchRootFolders from './services/FetchRootFolders.jsx';
+import FetchImages from './services/FetchImages.jsx';
+import UploadFiles from './services/UploadFiles.jsx';
+import ConfirmDelete from './services/ConfirmDelete.jsx';
 
 // helpers
-import fetchSubfolders from './components/Gallery/helpers/FetchSubFolders.jsx';
-import { downloadImage as helperDownloadImage, renameImage as helperRenameImage } from './components/Gallery/helpers/ImageActions.jsx';
-import { toggleSelectImageHelper, selectAllHelper, clearSelectionHelper } from './components/Gallery/helpers/Selection.jsx';
+import fetchSubfolders from './helpers/FetchSubFolders.jsx';
+import { downloadImage as helperDownloadImage, renameImage as helperRenameImage } from './helpers/ImageActions.jsx';
+import { toggleSelectImageHelper, selectAllHelper, clearSelectionHelper } from './helpers/Selection.jsx';
 
 export default function Gallery() {
   const [folders, setFolders] = useState([]);

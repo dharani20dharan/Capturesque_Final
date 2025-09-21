@@ -1,7 +1,7 @@
 // fetchSubfolders.js
 import axios from 'axios';
-import { API_BASE_URL } from '../../../config.js';
-import { encodePath } from '../../../helper.js';
+import { API_BASE_URL } from '../config.js';
+import { encodePath } from '../helper.js';
 
 export default async function fetchSubfolders(folderId, setSubfolders) {
   try {

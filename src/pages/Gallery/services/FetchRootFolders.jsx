@@ -1,7 +1,7 @@
 // fetchRootFolders.js
 import axios from "axios";
-import { API_BASE_URL, ROOT_FOLDER } from "../../config.js";
-import { encodePath } from "../../helper.js";
+import { API_BASE_URL, ROOT_FOLDER } from "../config.js";
+import { encodePath } from "../helper.js";
 
 export default async function fetchRootFoldersFn({ setLoading, setError, setFolders }) {
   setLoading(true);

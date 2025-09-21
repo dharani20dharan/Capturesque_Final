@@ -1,7 +1,7 @@
 // fetchImages.js
 import axios from 'axios';
-import { API_BASE_URL, PAGE_SIZE } from "../../config.js";
-import { encodePath, normalizePathParts, getRelFolderFromImageUrl } from "../../helper.js";
+import { API_BASE_URL, PAGE_SIZE } from "../config.js";
+import { encodePath, normalizePathParts, getRelFolderFromImageUrl } from "../helper.js";
 
 
 export default async function fetchImagesFn({

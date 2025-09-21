@@ -1,7 +1,7 @@
 import axios from "axios";
-import { API_BASE_URL } from "../../../config.js";
-import { encodePath } from "../../../helper.js";
-import getAuthHeaders from "../GetAuthHeaders.jsx";
+import { API_BASE_URL } from '../config.js';
+import { encodePath } from '../helper.js';
+import getAuthHeaders from "../components/GetAuthHeaders.jsx";
 
 
 /**

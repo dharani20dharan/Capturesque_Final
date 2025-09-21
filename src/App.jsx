@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import Home from "./pages/Home";
-import Gallery from "./component/Gallery/Gallery.jsx";
-import Login from "./pages/Login";
-import ClubInfo from "./pages/ClubInfo";
-import Contests from "./pages/Contests.jsx";
+import Home from "./pages/Home/Home.jsx";
+import Gallery from "./pages/Gallery/Gallery.jsx";
+import Login from "./pages/Login/Login.jsx";
+import ClubInfo from "./pages/ClubInfo/ClubInfo.jsx";
+import Contests from "./pages/Contests/Contests.jsx";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
