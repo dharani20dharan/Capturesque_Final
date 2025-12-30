@@ -13,18 +13,19 @@ import ImageModal from './components/ImageModal.jsx';
 import ImageGrid from './components/ImageGrid.jsx';
 import GalleryHeader from './components/GalleryHeader.jsx';
 import FolderCard from './components/FolderCard.jsx';
+import UploadProgressWidget from './components/UploadProgressWidget.jsx';
 
 // modular functions (from components/Gallery)
 import GetAuthHeaders from './components/GetAuthHeaders.jsx';
 import FetchRootFolders from './services/FetchRootFolders.jsx';
 import FetchImages from './services/FetchImages.jsx';
-import UploadFiles from './services/UploadFiles.jsx';
 import ConfirmDelete from './services/ConfirmDelete.jsx';
 
 // helpers
 import fetchSubfolders from './helpers/FetchSubFolders.jsx';
 import { downloadImage as helperDownloadImage, renameImage as helperRenameImage } from './helpers/ImageActions.jsx';
 import { toggleSelectImageHelper, selectAllHelper, clearSelectionHelper } from './helpers/Selection.jsx';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function Gallery() {
   const [folders, setFolders] = useState([]);
@@ -43,9 +44,6 @@ export default function Gallery() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const fileInputRef = useRef(null);
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [filePreviews, setFilePreviews] = useState([]);
-  const [uploadProgress, setUploadProgress] = useState({});
   const [folderSearch, setFolderSearch] = useState('');
   const [sortOrder, setSortOrder] = useState('nameAsc');
   const [extFilter, setExtFilter] = useState('all');
@@ -55,6 +53,11 @@ export default function Gallery() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [viewMode, setViewMode] = useState('grid');
+
+  // New Upload State
+  const [uploadQueue, setUploadQueue] = useState({}); // { id: { file, status, progress, name } }
+  const [isWidgetMinimized, setIsWidgetMinimized] = useState(false);
+  const [uploadingActive, setUploadingActive] = useState(false);
 
   const notify = (msg, ms = 3500) => {
     setToast(msg);
@@ -81,19 +84,20 @@ export default function Gallery() {
     });
   }, []);
 
-  const uploadFiles = useCallback(async () => {
-    await UploadFiles({
-      isAdmin,
-      selectedFolder,
-      selectedFiles,
-      setLoading,
-      setUploadProgress,
-      setSelectedFiles,
-      setFilePreviews,
-      notify,
-      fetchImages,
-    });
-  }, [isAdmin, selectedFolder, selectedFiles, notify, fetchImages]);
+  const fetchSubfoldersLocal = async (folderId) => {
+    await fetchSubfolders(folderId, setSubfolders);
+  };
+
+  const refreshCurrent = async () => {
+    if (selectedFolder) {
+      await fetchImages(selectedFolder.folderId);
+      const depthRelative = normalizePathParts(selectedFolder.folderId).length - rootParts.length;
+      if (depthRelative === 1) await fetchSubfoldersLocal(selectedFolder.folderId);
+      else if (depthRelative === 0) await fetchSubfoldersLocal(selectedFolder.folderId); // Should ideally be fetchRootFolders if we treated root as folder, but separate logic exists
+    } else {
+      await fetchRootFolders();
+    }
+  };
 
   /* ------------------
      Mount / Unmount
@@ -108,16 +112,6 @@ export default function Gallery() {
       window.removeEventListener('authChange', onAuthEvent);
     };
   }, [fetchRootFolders]);
-
-  useEffect(() => {
-    return () => {
-      filePreviews.forEach((p) => {
-        try {
-          URL.revokeObjectURL(p.url);
-        } catch { }
-      });
-    };
-  }, [filePreviews]);
 
   /* ------------------
      Data Filtering & Sorting
@@ -143,12 +137,6 @@ export default function Gallery() {
     setImagesVisible(arr.slice(0, visibleCount));
   }, [imagesAll, visibleCount, sortOrder, extFilter]);
 
-  /* ------------------
-     Local helpers (use helper modules)
-  ------------------- */
-  const fetchSubfoldersLocal = async (folderId) => {
-    await fetchSubfolders(folderId, setSubfolders);
-  };
 
   /* ------------------
      Navigation
@@ -158,6 +146,7 @@ export default function Gallery() {
     setImagesAll([]);
     setSubfolders([]);
     await fetchImages(folder.folderId);
+    if (!folder.folderId) return;
     const depthRelative = normalizePathParts(folder.folderId).length - rootParts.length;
     if (depthRelative === 1) await fetchSubfoldersLocal(folder.folderId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -173,27 +162,127 @@ export default function Gallery() {
       await fetchRootFolders();
       return;
     }
-    parts.pop();
-    const parentId = parts.join('/');
-    const parentName = parts[parts.length - 1] || ROOT_FOLDER;
+
+    // Fix: Use original string to preserve case
+    const currentPath = selectedFolder.folderId;
+    const newPathParts = currentPath.split('/');
+    newPathParts.pop();
+    const parentId = newPathParts.join('/');
+    const parentName = newPathParts[newPathParts.length - 1] || ROOT_FOLDER;
+
     await openFolder({ folderName: parentName, folderId: parentId });
   };
 
   /* ------------------
-     Upload Logic (admin only)
-  ------------------- */
-  const handleFileInputChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    setSelectedFiles(files);
-    setFilePreviews(files.map(f => ({ name: f.name, url: URL.createObjectURL(f) })));
-  };
-
-  /* ------------------
-     Folder Create/Rename/Delete (admin only)
-     Use imported GetAuthHeaders for auth header retrieval
+     Sequential Upload Logic
   ------------------- */
   const getAuthHeaders = GetAuthHeaders;
 
+  const handleFileInputChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    if (!selectedFolder) {
+      alert("Please select a folder first.");
+      return;
+    }
+
+    const newQueue = { ...uploadQueue };
+    files.forEach(file => {
+      const id = uuidv4();
+      newQueue[id] = {
+        id,
+        file,
+        name: file.name,
+        status: 'pending',
+        progress: 0,
+        folderId: selectedFolder.folderId
+      };
+    });
+
+    setUploadQueue(newQueue);
+    setUploadingActive(true);
+    setIsWidgetMinimized(false);
+
+    // reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Effect to process queue
+  useEffect(() => {
+    if (!uploadingActive) return;
+
+    const processQueue = async () => {
+      // Find visible pending file (First In First Out roughly, or simple iteration)
+      const pendingIds = Object.keys(uploadQueue).filter(id => uploadQueue[id].status === 'pending');
+      const uploadingIds = Object.keys(uploadQueue).filter(id => uploadQueue[id].status === 'uploading');
+
+      if (uploadingIds.length > 0) return; // Wait for current upload to finish
+      if (pendingIds.length === 0) {
+        setUploadingActive(false); // All done
+        refreshCurrent(); // Refresh view one last time
+        return;
+      }
+
+      const nextId = pendingIds[0];
+      const task = uploadQueue[nextId];
+
+      // Start upload
+      setUploadQueue(prev => ({
+        ...prev,
+        [nextId]: { ...prev[nextId], status: 'uploading' }
+      }));
+
+      const formData = new FormData();
+      formData.append('file', task.file);
+      formData.append('folderId', task.folderId);
+      // Optional: Add custom filename/description if needed, for now just file
+
+      try {
+        const url = `${API_BASE_URL}/api/upload/${encodePath(task.folderId)}`;
+        await axios.post(url, formData, {
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (progressEvent) => {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadQueue(prev => ({
+              ...prev,
+              [nextId]: { ...prev[nextId], progress: percent }
+            }));
+          }
+        });
+
+        // Success
+        setUploadQueue(prev => ({
+          ...prev,
+          [nextId]: { ...prev[nextId], status: 'completed', progress: 100 }
+        }));
+
+        // Refresh visible grid to show new image incrementally (Google Drive feel)
+        if (selectedFolder && selectedFolder.folderId === task.folderId) {
+          // We can trigger a lightweight refresh or just wait for explicit refresh
+          // For better UX, let's refresh.
+          fetchImages(task.folderId);
+        }
+
+      } catch (err) {
+        console.error('Upload error', err);
+        setUploadQueue(prev => ({
+          ...prev,
+          [nextId]: { ...prev[nextId], status: 'error' }
+        }));
+      }
+    };
+
+    const timer = setTimeout(processQueue, 100); // small delay to allow state updates
+    return () => clearTimeout(timer);
+  }, [uploadQueue, uploadingActive, selectedFolder, fetchImages, getAuthHeaders]);
+
+
+  /* ------------------
+     Folder Create/Rename/Delete
+  ------------------- */
   const createFolder = async (asRoot = true) => {
     if (!isAdmin) return alert('Only admins can create folders.');
     const parentName = asRoot ? ROOT_FOLDER : selectedFolder?.folderName;
@@ -204,8 +293,7 @@ export default function Gallery() {
     try {
       const res = await axios.post(url, null, { headers: getAuthHeaders() });
       notify(res.data?.message || 'Folder created');
-      if (asRoot) await fetchRootFolders();
-      else await fetchSubfoldersLocal(selectedFolder.folderId);
+      refreshCurrent(); // Auto-refresh
     } catch (err) {
       alert(`Create folder failed: ${err.response?.data?.error || err.message}`);
     }
@@ -221,26 +309,29 @@ export default function Gallery() {
       const url = `${API_BASE_URL}/api/rename-folder/${encodePath(folder.folderId)}`;
       await axios.post(url, { newName }, { headers: getAuthHeaders() });
       notify('Folder renamed');
+      // Logic to decide what to refresh
+      const parts = folder.folderId.split('/');
+      parts.pop();
+      const parent = parts.join('/');
+
+      // If we renamed the CURRENT folder, we need to update state
       if (selectedFolder?.folderId === folder.folderId) {
-        const parts = folder.folderId.split('/');
-        parts.pop();
-        const parent = parts.join('/');
-        await fetchSubfoldersLocal(parent);
         const renamed = { folderName: newName, folderId: `${parent}/${newName}` };
         setSelectedFolder(renamed);
         await fetchImages(renamed.folderId);
-      } else {
-        const depthRelative = normalizePathParts(folder.folderId).length - rootParts.length;
-        if (depthRelative === 1) await fetchRootFolders();
-        else if (selectedFolder) await fetchSubfoldersLocal(selectedFolder.folderId);
       }
+      // Refresh parent to see new name in list
+      if (!parent && !selectedFolder) fetchRootFolders(); // renamed root folder child
+      else if (selectedFolder && parent === selectedFolder.folderId) fetchSubfoldersLocal(parent);
+      else refreshCurrent();
+
     } catch (err) {
       alert(`Rename failed: ${err.response?.data?.error || err.message}`);
     }
   };
 
   /* ------------------
-     Image actions (use helpers)
+     Image actions
   ------------------- */
   const downloadImage = async (image) => {
     await helperDownloadImage({ image, selectedFolder, notify, isLoggedIn });
@@ -276,9 +367,6 @@ export default function Gallery() {
     setConfirmOpen(true);
   };
 
-  /* ------------------
-     confirmDelete wrapper (uses modular ConfirmDelete)
-  ------------------- */
   const confirmDelete = useCallback(async () => {
     await ConfirmDelete({
       deleteTarget,
@@ -287,14 +375,32 @@ export default function Gallery() {
       setConfirmOpen,
       notify,
       fetchImages,
-      fetchRootFolders,
-      goUpOneLevel,
+      // Instead of relying on ConfirmDelete to guess navigation, we provide explicit refresh logic or use ConfirmDelete's default if apt.
+      // But ConfirmDelete uses goUpOneLevel for folder delete. We want to JUST REFRESH if we deleted a child folder.
+      // We will trick it: we won't pass goUpOneLevel. We will handle refresh here manually?
+      // Actually ConfirmDelete is imported. Let's see if we can pass a custom callback.
+      // The imported function checks `if (typeof goUpOneLevel === 'function')`.
+      // If we pass null, it calls `fetchRootFolders`.
+      // But we want `refreshCurrent` (which might be fetchSubfoldersLocal).
+      // Solution: Wrap goUpOneLevel logic, or simply perform refresh after ConfirmDelete returns?
+      // ConfirmDelete is async.
+      // But it executes the navigation internally.
+      // We should Modify ConfirmDelete logic in previous step? No, reusing existing.
+      // Let's pass a wrapper for goUpOneLevel that actually just Refreshes if we are deleting a subfolder of CURRENT folder.
+      goUpOneLevel: async () => {
+        // If we are deleting a folder, ConfirmDelete calls this.
+        // Usually ConfirmDelete calls this assuming we deleted the CURRENT folder.
+        // But here we only delete subfolders (via cards).
+        // So we should NOT go up. We should refresh.
+        await refreshCurrent();
+      },
+      fetchRootFolders: refreshCurrent, // Fallback
       setSelectMode,
     });
-  }, [deleteTarget, notify, fetchImages, fetchRootFolders, goUpOneLevel]);
+  }, [deleteTarget, notify, fetchImages, refreshCurrent]);
 
   /* ------------------
-     Modal / selection helpers (use selection helpers)
+     Modal / selection helpers
   ------------------- */
   const openModal = (image) => {
     setSelectedImage(image);
@@ -319,17 +425,6 @@ export default function Gallery() {
 
   const renameImage = async (image) => {
     await helperRenameImage({ image, selectedFolder, notify, fetchImages, setSelectedImage, isAdmin });
-  };
-
-  const refreshCurrent = async () => {
-    if (selectedFolder) {
-      await fetchImages(selectedFolder.folderId);
-      const depthRelative = normalizePathParts(selectedFolder.folderId).length - rootParts.length;
-      if (depthRelative === 1) await fetchSubfoldersLocal(selectedFolder.folderId);
-    } else {
-      await fetchRootFolders();
-    }
-    notify('Refreshed');
   };
 
   const selectAll = () => selectAllHelper(imagesVisible, setSelectedIds);
@@ -374,20 +469,23 @@ export default function Gallery() {
                 ))}
               </div>
             )}
+
+            {/* Standard Upload Area (Empty State or Initial) */}
             {isAdmin && (
               <UploadArea
                 fileInputRef={fileInputRef}
                 onFileInputChange={handleFileInputChange}
-                filePreviews={filePreviews}
-                selectedFiles={selectedFiles}
+                filePreviews={[]} // We don't show previews here anymore, they go to widget
+                selectedFiles={[]}
                 onSelectFiles={() => fileInputRef.current?.click()}
-                onUpload={uploadFiles}
+                onUpload={() => { }} // No manual upload trigger needed, happens on select
                 onCreateSubfolder={() => createFolder(false)}
                 selectedFolder={selectedFolder}
-                isUploading={loading && uploadProgress.overall > 0}
-                uploadProgress={uploadProgress}
+                isUploading={false}
+                uploadProgress={{ overall: 0 }}
               />
             )}
+
             {selectMode && (
               <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button className="btn" onClick={selectAll}>Select visible</button>
@@ -397,9 +495,10 @@ export default function Gallery() {
                 <div style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>{selectedIds.size} selected</div>
               </div>
             )}
-            {loading && <div className="gallery-message loading"><FaSpinner className="spinner-icon" /> Loading images...</div>}
+            {loading && !uploadingActive && <div className="gallery-message loading"><FaSpinner className="spinner-icon" /> Loading...</div>}
             {!loading && error && <div className="gallery-message error"><FaExclamationTriangle /> {error}</div>}
-            {!loading && !error && imagesVisible.length > 0 && (
+
+            {imagesVisible.length > 0 && (
               viewMode === 'grid' ? (
                 <ImageGrid
                   images={imagesVisible}
@@ -413,6 +512,7 @@ export default function Gallery() {
                 <div>List View Not Implemented</div>
               )
             )}
+
             {!loading && imagesAll.length > imagesVisible.length && (
               <div style={{ textAlign: 'center', marginTop: 20 }}>
                 <button className="btn" onClick={loadMore}>Load more</button>
@@ -440,7 +540,6 @@ export default function Gallery() {
         image={selectedImage}
         onClose={closeModal}
         onDownload={downloadImage}
-        onCopyLink={copyImageLink}
         onRename={renameImage}
         onDelete={requestDeleteImage}
         isLoggedIn={isLoggedIn}
@@ -451,12 +550,19 @@ export default function Gallery() {
         open={confirmOpen}
         title={deleteTarget?.type === 'folder' ? 'Delete Folder' : 'Delete Item(s)'}
         message={deleteTarget?.type === 'folder'
-          ? `Are you sure you want to delete the folder "${deleteTarget?.folderName}" and all its contents? This cannot be undone.`
-          : `Are you sure you want to delete ${deleteTarget?.images?.length || 1} item(s)? This cannot be undone.`}
+          ? `Are you sure you want to delete the folder "${deleteTarget?.folderName}" and all its contents?`
+          : `Are you sure you want to delete ${deleteTarget?.images?.length || 1} item(s)?`}
         onConfirm={confirmDelete}
         onCancel={() => setConfirmOpen(false)}
         loading={deleteLoading}
         confirmLabel={deleteTarget?.type === 'folder' ? 'Delete folder' : 'Delete'}
+      />
+
+      <UploadProgressWidget
+        uploads={uploadQueue}
+        onClose={() => setUploadQueue({})}
+        minimized={isWidgetMinimized}
+        toggleMinimized={() => setIsWidgetMinimized(!isWidgetMinimized)}
       />
 
       <Toast message={toast} />

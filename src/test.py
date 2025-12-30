@@ -9,12 +9,17 @@ from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 
 # Load env
-load_dotenv()
+# Ensure we load from the same directory as the script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 app = Flask(__name__)
 
 # Config - keep JWT secret in env so it matches auth.py when running separately
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-super-secret-key-that-is-very-long")
+JWT_SECRET = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET_KEY is not set in environment. Please create a .env file.")
+app.config["JWT_SECRET_KEY"] = JWT_SECRET
 # Optional: control behavior via env
 BASE_PATH = os.getenv("IMAGES_PATH", "/home/ubuntu/Capturesque/Images")
 ALLOWED_EXTENSIONS = set(os.getenv("ALLOWED_EXTENSIONS", "png,jpg,jpeg,gif").split(","))

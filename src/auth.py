@@ -16,14 +16,20 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+print("JWT_SECRET_KEY FROM ENV:", os.getenv("JWT_SECRET_KEY"))
+
+
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///site.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["JWT_SECRET_KEY"] = os.getenv(
-    "JWT_SECRET_KEY", "your-super-secret-key-that-is-very-long"
-)
+JWT_SECRET = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET_KEY is not set in environment")
+
+app.config["JWT_SECRET_KEY"] = JWT_SECRET
+
 # Token lifetime can be controlled via env var (default 1 hour)
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=int(os.getenv("JWT_EXPIRE_HOURS", "1")))
 
