@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FaUpload, FaPlus, FaImage, FaCloudUploadAlt } from 'react-icons/fa';
 
-function UploadArea({ fileInputRef, onFileInputChange, filePreviews, selectedFiles, onSelectFiles, onUpload, onCreateSubfolder, selectedFolder, isUploading, uploadProgress }) {
+function UploadArea({ fileInputRef, onFileInputChange, filePreviews, selectedFiles, onSelectFiles, onUpload, onCreateSubfolder, selectedFolder, isUploading, uploadProgress, onFilesDrop }) {
   const [dragOver, setDragOver] = useState(false);
 
   const handleDragOver = (e) => {
@@ -14,10 +14,15 @@ function UploadArea({ fileInputRef, onFileInputChange, filePreviews, selectedFil
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
-    // You'd ideally handle the files here but for now just pass through if supported or rely on button
-    // The current functionality just uses the button click to trigger fileInput.
-    // We can't set fileInput.files programmatically easily for security, but we could expose a new prop `onFilesDrop`
-    // For now, let's keep the click behavior but style it as a drop zone.
+    
+    if (onFilesDrop && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      // Filter out non-images to match the input's accept="image/*"
+      const imageFiles = files.filter(file => file.type.startsWith('image/'));
+      if (imageFiles.length > 0) {
+        onFilesDrop(imageFiles);
+      }
+    }
   };
 
   return (

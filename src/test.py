@@ -6,12 +6,25 @@ from mimetypes import guess_type
 from werkzeug.utils import secure_filename
 from functools import wraps
 from dotenv import load_dotenv
-from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity as _get_jwt_identity
+import json
+
+def get_jwt_identity():
+    val = _get_jwt_identity()
+    if isinstance(val, str):
+        try:
+            return json.loads(val)
+        except Exception:
+            return val
+    return val
 
 # Load env
-# Ensure we load from the same directory as the script
+load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
+if not os.getenv("JWT_SECRET_KEY"):
+    load_dotenv(os.path.join(BASE_DIR, ".env"))
+if not os.getenv("JWT_SECRET_KEY"):
+    load_dotenv(os.path.join(os.path.dirname(BASE_DIR), ".env"))
 
 app = Flask(__name__)
 
@@ -20,12 +33,38 @@ JWT_SECRET = os.getenv("JWT_SECRET_KEY")
 if not JWT_SECRET:
     raise RuntimeError("JWT_SECRET_KEY is not set in environment. Please create a .env file.")
 app.config["JWT_SECRET_KEY"] = JWT_SECRET
-# Optional: control behavior via env
-BASE_PATH = os.getenv("IMAGES_PATH", "/home/ubuntu/Capturesque/Images")
+raw_images_path = os.getenv("IMAGES_PATH", "./Images")
+if not os.path.isabs(raw_images_path):
+    # Resolve relative to the project root (parent of the 'src' folder)
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    BASE_PATH = os.path.abspath(os.path.join(project_root, raw_images_path))
+else:
+    BASE_PATH = os.path.abspath(raw_images_path)
+
+# Create base path if it doesn't exist (ensures production-ready initialization)
+os.makedirs(BASE_PATH, exist_ok=True)
 ALLOWED_EXTENSIONS = set(os.getenv("ALLOWED_EXTENSIONS", "png,jpg,jpeg,gif").split(","))
 
 # CORS
-CORS(app, supports_credentials=True)
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://34.93.13.211:8087",      # New GCP deployed frontend/media
+    "http://34.93.13.211",           # New GCP deployed frontend default HTTP
+    "http://150.230.138.173:8087",  # Old Oracle VM IP (backward compatibility)
+]
+env_origins = os.getenv("CORS_ALLOWED_ORIGINS")
+if env_origins:
+    allowed_origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
+
+CORS(
+    app,
+    supports_credentials=True,
+    resources={r"/*": {"origins": allowed_origins}},
+)
 
 # JWT
 jwt = JWTManager(app)
@@ -436,13 +475,58 @@ def rename_image(foldername, old_name):
         return jsonify({'error': f'Failed to rename image: {str(e)}'}), 500
 
 
+# Server-side ZIP downloads for multi-selection
+@app.route('/api/download-zip', methods=['POST', 'OPTIONS'])
+@jwt_required()
+def download_zip():
+    if request.method == 'OPTIONS':
+        return jsonify({'status': 'ok'}), 200
+
+    data = request.get_json(force=True, silent=True) or {}
+    folder_id = data.get('folderId', '')
+    filenames = data.get('filenames', [])
+
+    if not filenames:
+        return jsonify({'error': 'No filenames provided'}), 400
+
+    try:
+        parts = normalize_parts_from_path(folder_id)
+        folder_path = safe_join_base(*parts)
+    except ValueError:
+        return jsonify({'error': 'Invalid folder path'}), 400
+
+    if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
+        return jsonify({'error': 'Folder not found'}), 404
+
+    import io
+    import zipfile
+
+    memory_file = io.BytesIO()
+    try:
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for filename in filenames:
+                safe_name = secure_filename(filename)
+                file_path = os.path.join(folder_path, safe_name)
+                if os.path.exists(file_path) and os.path.isfile(file_path):
+                    zip_file.write(file_path, safe_name)
+
+        memory_file.seek(0)
+
+        folder_name = parts[-1] if parts else "download"
+        download_name = f"{secure_filename(folder_name)}.zip"
+
+        return send_file(
+            memory_file,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=download_name
+        )
+    except Exception as e:
+        return jsonify({'error': f'Failed to create zip: {str(e)}'}), 500
+
+
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', '5000'))
+    port = int(os.getenv('PORT', '8087'))
     debug = os.getenv('FLASK_DEBUG', 'true').lower() in ('1', 'true', 'yes')
-    if not os.path.exists(BASE_PATH):
-        # create base path for convenience in dev
-        try:
-            os.makedirs(BASE_PATH, exist_ok=True)
-        except Exception:
-            pass
-    app.run(debug=debug, host='0.0.0.0', port='8087')
+    app.run(debug=debug, host='0.0.0.0', port=port)
+

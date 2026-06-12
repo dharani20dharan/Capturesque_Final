@@ -14,6 +14,7 @@ import ImageGrid from './components/ImageGrid.jsx';
 import GalleryHeader from './components/GalleryHeader.jsx';
 import FolderCard from './components/FolderCard.jsx';
 import UploadProgressWidget from './components/UploadProgressWidget.jsx';
+import ListView from './components/ListView.jsx';
 
 // modular functions (from components/Gallery)
 import GetAuthHeaders from './components/GetAuthHeaders.jsx';
@@ -23,7 +24,7 @@ import ConfirmDelete from './services/ConfirmDelete.jsx';
 
 // helpers
 import fetchSubfolders from './helpers/FetchSubFolders.jsx';
-import { downloadImage as helperDownloadImage, renameImage as helperRenameImage } from './helpers/ImageActions.jsx';
+import { downloadImage as helperDownloadImage, renameImage as helperRenameImage, downloadImagesAsZip } from './helpers/ImageActions.jsx';
 import { toggleSelectImageHelper, selectAllHelper, clearSelectionHelper } from './helpers/Selection.jsx';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -173,13 +174,25 @@ export default function Gallery() {
     await openFolder({ folderName: parentName, folderId: parentId });
   };
 
+  const navigateToFolderId = async (folderId) => {
+    if (!folderId || folderId === ROOT_FOLDER) {
+      setSelectedFolder(null);
+      setImagesAll([]);
+      setSubfolders([]);
+      await fetchRootFolders();
+      return;
+    }
+    const parts = folderId.split('/');
+    const folderName = parts[parts.length - 1];
+    await openFolder({ folderName, folderId });
+  };
+
   /* ------------------
      Sequential Upload Logic
   ------------------- */
   const getAuthHeaders = GetAuthHeaders;
 
-  const handleFileInputChange = (e) => {
-    const files = Array.from(e.target.files || []);
+  const handleFilesAdded = (files) => {
     if (!files.length) return;
     if (!selectedFolder) {
       alert("Please select a folder first.");
@@ -202,6 +215,11 @@ export default function Gallery() {
     setUploadQueue(newQueue);
     setUploadingActive(true);
     setIsWidgetMinimized(false);
+  };
+
+  const handleFileInputChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    handleFilesAdded(files);
 
     // reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -341,10 +359,8 @@ export default function Gallery() {
     if (!isLoggedIn) return notify('Log in to download images.');
     const toDownload = imagesAll.filter(i => selectedIds.has(i.id));
     if (!toDownload.length) return notify('No images selected.');
-    for (const img of toDownload) {
-      await downloadImage(img);
-      await new Promise(r => setTimeout(r, 300));
-    }
+    const filenames = toDownload.map(img => img.name);
+    await downloadImagesAsZip({ filenames, selectedFolder, notify, isLoggedIn });
   };
 
   const requestDeleteImage = (image) => {
@@ -452,6 +468,7 @@ export default function Gallery() {
           isAdmin={isAdmin}
           isLoggedIn={isLoggedIn}
           selectedIds={selectedIds}
+          onNavigate={navigateToFolderId}
         />
         {selectedFolder ? (
           <>
@@ -483,6 +500,7 @@ export default function Gallery() {
                 selectedFolder={selectedFolder}
                 isUploading={false}
                 uploadProgress={{ overall: 0 }}
+                onFilesDrop={handleFilesAdded}
               />
             )}
 
@@ -509,7 +527,17 @@ export default function Gallery() {
                   isAdmin={isAdmin}
                 />
               ) : (
-                <div>List View Not Implemented</div>
+                <ListView
+                  images={imagesVisible}
+                  selectMode={selectMode}
+                  selectedIds={selectedIds}
+                  onImageClick={(image) => selectMode ? toggleSelectImage(image.id) : openModal(image)}
+                  onImageDelete={requestDeleteImage}
+                  onImageDownload={downloadImage}
+                  onImageCopyLink={copyImageLink}
+                  isAdmin={isAdmin}
+                  isLoggedIn={isLoggedIn}
+                />
               )
             )}
 

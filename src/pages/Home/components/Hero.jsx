@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './Hero.css';
 
-const API_BASE_URL = "http://150.230.138.173:8087";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8087";
 const HERO_FOLDER = "Hero"; // Define the folder name
 
 const Hero = () => {

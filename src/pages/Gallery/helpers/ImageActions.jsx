@@ -54,3 +54,41 @@ export async function renameImage({ image, selectedFolder, notify, fetchImages, 
     alert(`Rename failed: ${err.response?.data?.error || err.message}`);
   }
 }
+
+/**
+ * Download selected images as a ZIP archive
+ * params: { filenames, selectedFolder, notify, isLoggedIn }
+ */
+export async function downloadImagesAsZip({ filenames, selectedFolder, notify, isLoggedIn }) {
+  if (!isLoggedIn) return alert('Please log in to download images.');
+  if (!filenames || !filenames.length || !selectedFolder?.folderId) return alert('Error: Missing download data.');
+
+  const url = `${API_BASE_URL}/api/download-zip`;
+  try {
+    notify('Preparing ZIP download...');
+    const response = await axios.post(
+      url,
+      {
+        folderId: selectedFolder.folderId,
+        filenames: filenames,
+      },
+      {
+        headers: getAuthHeaders(),
+        responseType: 'blob',
+      }
+    );
+    const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    const folderName = selectedFolder.folderName || 'download';
+    link.setAttribute('download', `${folderName}.zip`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+    notify('ZIP download started');
+  } catch (err) {
+    alert(`ZIP download failed: ${err.response?.data?.error || err.message}`);
+  }
+}
+

@@ -4,7 +4,7 @@ import { FaChevronLeft, FaChevronRight, FaSpinner } from 'react-icons/fa';
 import "./Featuredphotos.css";
 
 // --- Configuration ---
-const API_BASE_URL = "http://150.230.138.173:8087";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8087";
 const FEATURE_FOLDER = "Feature";
 const AUTOPLAY_INTERVAL = 5000; // 5 seconds for a more relaxed pace
 

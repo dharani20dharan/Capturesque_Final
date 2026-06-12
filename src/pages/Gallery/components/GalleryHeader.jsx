@@ -16,6 +16,7 @@ const GalleryHeader = ({
   isAdmin,
   isLoggedIn,
   selectedIds,
+  onNavigate,
 }) => {
   const [scrolled, setScrolled] = useState(false);
 
@@ -27,39 +28,64 @@ const GalleryHeader = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const pathSegments = selectedFolder ? selectedFolder.folderId.split('/') : [ROOT_FOLDER];
+
   return (
     <div className={`gallery-header ${scrolled ? 'scrolled' : ''}`}>
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        {selectedFolder ? (
-          <>
-            <button className="btn back-btn" onClick={goUpOneLevel} title="Go Up">
-              <FaArrowLeft />
-            </button>
-            <div>
-              <h2 className="gallery-title">
-                {selectedFolder.folderName}
-                {isAdmin && (
-                  <button className="btn small" title="Rename folder" onClick={() => renameFolder(selectedFolder)} style={{ marginLeft: 8, border: 'none', padding: 4 }}>
-                    <FaPen size={12} />
-                  </button>
-                )}
-              </h2>
-              <div className="text-subtle" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                {selectedFolder.folderId}
-                <button className="btn small" style={{ border: 'none', padding: 0, color: 'inherit' }} onClick={refreshCurrent} title="Refresh">
-                  <FaRedo />
+        {selectedFolder && (
+          <button className="btn back-btn" onClick={goUpOneLevel} title="Go Up">
+            <FaArrowLeft />
+          </button>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="breadcrumbs" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '1.25rem' }}>
+            {pathSegments.map((segment, index) => {
+              const isLast = selectedFolder ? (index === pathSegments.length - 1) : true;
+              const folderId = selectedFolder ? pathSegments.slice(0, index + 1).join('/') : ROOT_FOLDER;
+
+              return (
+                <React.Fragment key={folderId}>
+                  {index > 0 && <span className="breadcrumb-separator" style={{ opacity: 0.4, margin: '0 4px' }}>/</span>}
+                  {isLast ? (
+                    <span className="breadcrumb-current" style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      {segment}
+                      {selectedFolder && isAdmin && (
+                        <button className="btn small" title="Rename folder" onClick={() => renameFolder(selectedFolder)} style={{ border: 'none', padding: 4 }}>
+                          <FaPen size={10} />
+                        </button>
+                      )}
+                    </span>
+                  ) : (
+                    <span
+                      className="breadcrumb-link"
+                      onClick={() => onNavigate(index === 0 ? null : folderId)}
+                      style={{ cursor: 'pointer', color: '#007bff', fontWeight: 500 }}
+                    >
+                      {segment}
+                    </span>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+          {selectedFolder ? (
+            <div className="text-subtle" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: '0.85rem' }}>
+              {selectedFolder.folderId}
+              <button className="btn small" style={{ border: 'none', padding: 0, color: 'inherit' }} onClick={refreshCurrent} title="Refresh">
+                <FaRedo size={10} />
+              </button>
+            </div>
+          ) : (
+            isAdmin && (
+              <div style={{ marginTop: 8 }}>
+                <button className="btn primary small" onClick={() => createFolder(true)}>
+                  <FaFolderPlus /> New Folder
                 </button>
               </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <h2 className="gallery-title">
-              {ROOT_FOLDER}
-            </h2>
-            {isAdmin && <button className="btn primary small" onClick={() => createFolder(true)}><FaFolderPlus /> New Folder</button>}
-          </>
-        )}
+            )
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

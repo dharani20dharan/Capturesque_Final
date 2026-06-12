@@ -5,8 +5,18 @@ from flask_jwt_extended import (
     JWTManager,
     create_access_token,
     jwt_required,
-    get_jwt_identity,
+    get_jwt_identity as _get_jwt_identity,
 )
+import json
+
+def get_jwt_identity():
+    val = _get_jwt_identity()
+    if isinstance(val, str):
+        try:
+            return json.loads(val)
+        except Exception:
+            return val
+    return val
 from flask_cors import CORS, cross_origin
 from functools import wraps
 import os
@@ -37,17 +47,24 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=int(os.getenv("JWT_EXPI
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "dharani080905@gmail.com")
 
 # --- CORS ---
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://34.93.13.211:8087",      # New GCP deployed frontend/media
+    "http://34.93.13.211",           # New GCP deployed frontend default HTTP
+    "http://150.230.138.173:8087",  # Old Oracle VM IP (backward compatibility)
+]
+env_origins = os.getenv("CORS_ALLOWED_ORIGINS")
+if env_origins:
+    allowed_origins.extend([o.strip() for o in env_origins.split(",") if o.strip()])
+
 CORS(
     app,
     supports_credentials=True,
-    resources={r"/*": {"origins": [
-        "http://localhost:3000",   # React default
-        "http://localhost:5173",   # Vite default
-        "http://localhost:5174",   # Other local dev port
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://150.230.138.173:8087",  # deployed frontend
-    ]}},
+    resources={r"/*": {"origins": allowed_origins}},
 )
 
 # --- INITIALIZATION ---
@@ -65,6 +82,11 @@ class User(db.Model):
         return f"<User {self.email}>"
 
 
+# Create database tables during startup (ensures creation when running under WSGI/Gunicorn)
+with app.app_context():
+    db.create_all()
+
+
 # ------------------
 # Helpers
 # ------------------
@@ -80,7 +102,7 @@ def make_identity(user):
 
 def create_token_for_user(user):
     identity = make_identity(user)
-    access_token = create_access_token(identity=identity)
+    access_token = create_access_token(identity=json.dumps(identity))
     return access_token, identity
 
 
@@ -208,6 +230,4 @@ def get_current_user_from_jwt():
 
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(debug=True, host="0.0.0.0", port=int(os.getenv("PORT", 5000)))

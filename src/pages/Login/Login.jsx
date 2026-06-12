@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
 // Ensure this URL points to your single, merged backend server
-const API_BASE_URL = "http://localhost:5000"; 
+const API_BASE_URL = import.meta.env.VITE_AUTH_BASE_URL || "http://localhost:5000";
 
 const Login = () => {
   const [email, setEmail] = useState("");

@@ -30,7 +30,7 @@
   height: 100%;
    /* *** IMPORTANT: Use a relative path from your PUBLIC folder *** */
    /* Example: place bg.jpg in public/images/ */
-  background: url('src/Assets/bg.jpg') center center/cover no-repeat;
+  background: url('../../../Assets/bg.jpg') center center/cover no-repeat;
   /* Subtle animation: slow zoom (Ken Burns effect) */
   animation: kenBurns 25s infinite alternate ease-in-out;
   z-index: 1;

@@ -5,7 +5,7 @@
  * It centralizes values like the API base URL, the root folder name,
  * pagination size, and a fallback image placeholder.
  */
-let API_BASE_URL = 'http://150.230.138.173:8087';
+let API_BASE_URL = 'http://localhost:8087';
 
 if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) {
   API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
