@@ -13,7 +13,7 @@ const GalleryHeader = ({
   toggleSelectMode,
   setViewMode,
   viewMode,
-  isAdmin,
+  isPhotographer,
   isLoggedIn,
   selectedIds,
 }) => {
@@ -38,7 +38,7 @@ const GalleryHeader = ({
             <div>
               <h2 className="gallery-title">
                 {selectedFolder.folderName}
-                {isAdmin && (
+                {isPhotographer && (
                   <button className="btn small" title="Rename folder" onClick={() => renameFolder(selectedFolder)} style={{ marginLeft: 8, border: 'none', padding: 4 }}>
                     <FaPen size={12} />
                   </button>
@@ -57,7 +57,7 @@ const GalleryHeader = ({
             <h2 className="gallery-title">
               {ROOT_FOLDER}
             </h2>
-            {isAdmin && <button className="btn primary small" onClick={() => createFolder(true)}><FaFolderPlus /> New Folder</button>}
+            {isPhotographer && <button className="btn primary small" onClick={() => createFolder(true)}><FaFolderPlus /> New Folder</button>}
           </>
         )}
       </div>

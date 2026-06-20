@@ -1,87 +1,215 @@
-import React from 'react';
-// Import Instagram icon
-import { FaInstagram } from 'react-icons/fa';
-import './ClubInfo.css'; // Ensure CSS filename matches
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { FaInstagram, FaPen, FaTrashAlt, FaPlus, FaSpinner } from 'react-icons/fa';
+import './ClubInfo.css';
+import { API_BASE_URL } from '../Gallery/config.js';
+import { getCurrentUser } from '../Gallery/helper.js';
 
 const ClubInfo = () => {
-  // Club Heads Data (Unchanged)
-  const clubHeads = [
-    {
-      name: "Dharanidharan",
-      photo: "/Members/member1.jpg",
-      quote: "Photography is the story I fail to put into words.",
-      instagram: "@this_is_dharanidharan",
-      instaLink: "https://www.instagram.com/this_is_dharanidharan",
-    },
-    {
-      name: "Another Club Head",
-      photo: "/Members/clubhead2.jpg",
-      quote: "Every picture tells a story, let's capture it.",
-      instagram: "@another_clubhead",
-      instaLink: "https://www.instagram.com/another_clubhead",
-    },
-  ];
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Core Committee Data (Unchanged)
-  const coreCommittee = [
-    { name: "Dharanidharan",
-      photo: "/Members/member1.jpg",
-      quote: "Photography is the story I fail to put into words.",
-      instagram: "@this_is_dharanidharan",
-      instaLink: "https://www.instagram.com/this_is_dharanidharan"},
-    { name: "Core Member 2", photo: "/Members/core2.jpg", quote: "A picture is worth a thousand words.", instagram: "@core2", instaLink: "https://www.instagram.com/core2" },
-    { name: "Core Member 3", photo: "/Members/core3.jpg", quote: "Finding beauty in the ordinary.", instagram: "@core3", instaLink: "https://www.instagram.com/core3" },
-    { name: "Core Member 4", photo: "/Members/core4.jpg", quote: "Moments captured, memories preserved.", instagram: "@core4", instaLink: "https://www.instagram.com/core4" },
-    { name: "Core Member 5", photo: "/Members/core5.jpg", quote: "Chasing light, capturing life.", instagram: "@core5", instaLink: "https://www.instagram.com/core5" },
-    { name: "Core Member 6", photo: "/Members/core6.jpg", quote: "Through the lens, we see the world differently.", instagram: "@core6", instaLink: "https://www.instagram.com/core6" },
-  ];
+  // Modal / Form state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState(null); // null = adding new member
+  const [formData, setFormData] = useState({
+    name: '',
+    photo: '/images/avatar_placeholder.png',
+    quote: '',
+    instagram: '',
+    instaLink: '',
+    role_type: 'poc',
+  });
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // POC Members Data (Unchanged)
-  const pocMembers = [
-    { name: "Dharanidharan",
-      photo: "/Members/member1.jpg",
-      quote: "Photography is the story I fail to put into words.",
-      instagram: "@this_is_dharanidharan",
-      instaLink: "https://www.instagram.com/this_is_dharanidharan"},
-    { name: "POC Member 1", photo: "/Members/poc1.jpg", instagram: "@poc1", instaLink: "https://www.instagram.com/poc1" },
-    { name: "POC Member 2", photo: "/Members/poc2.jpg", instagram: "@poc2", instaLink: "https://www.instagram.com/poc2" },
-    { name: "POC Member 3", photo: "/Members/poc3.jpg", instagram: "@poc3", instaLink: "https://www.instagram.com/poc3" },
-    { name: "POC Member 4", photo: "/Members/poc4.jpg", instagram: "@poc4", instaLink: "https://www.instagram.com/poc4" },
-    { name: "POC Member 5", photo: "/Members/poc5.jpg", instagram: "@poc5", instaLink: "https://www.instagram.com/poc5" },
-    { name: "POC Member 6", photo: "/Members/poc6.jpg", instagram: "@poc6", instaLink: "https://www.instagram.com/poc6" },
-    { name: "POC Member 7", photo: "/Members/poc7.jpg", instagram: "@poc7", instaLink: "https://www.instagram.com/poc7" },
-    { name: "POC Member 8", photo: "/Members/poc8.jpg", instagram: "@poc8", instaLink: "https://www.instagram.com/poc8" },
-    { name: "POC Member 9", photo: "/Members/poc9.jpg", instagram: "@poc9", instaLink: "https://www.instagram.com/poc9" },
-    { name: "POC Member 10", photo: "/Members/poc10.jpg", instagram: "@poc10", instaLink: "https://www.instagram.com/poc10" },
-  ];
+  // Authenticated user check
+  const user = getCurrentUser();
+  const isAdmin = !!(user && (user.role === 'admin' || user.is_admin === true));
 
-  // Reusable Member Grid Component (Modified insta-link)
-  const MemberGrid = ({ title, members }) => (
-    <section className="member-section"> {/* Changed class to section */}
-      <h2 className="section-title">{title}</h2> {/* Changed class */}
+  const fetchMembers = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/members`);
+      setMembers(res.data);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load team members. Please check if the server is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const handleOpenAdd = (roleType) => {
+    setEditingMember(null);
+    setFormData({
+      name: '',
+      photo: '/images/avatar_placeholder.png',
+      quote: '',
+      instagram: '',
+      instaLink: '',
+      role_type: roleType,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (member) => {
+    setEditingMember(member);
+    setFormData({
+      name: member.name || '',
+      photo: member.photo || '/images/avatar_placeholder.png',
+      quote: member.quote || '',
+      instagram: member.instagram || '',
+      instaLink: member.instaLink || '',
+      role_type: member.role_type || 'poc',
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (memberId, memberName) => {
+    if (!window.confirm(`Are you sure you want to remove "${memberName}" from the team?`)) {
+      return;
+    }
+    try {
+      await axios.delete(`${API_BASE_URL}/api/admin/members/${memberId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      fetchMembers();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete member: " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const data = new FormData();
+    data.append('file', file);
+
+    setUploading(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/admin/members/upload-avatar`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setFormData(prev => ({ ...prev, photo: res.data.photoUrl }));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload avatar: " + (err.response?.data?.error || err.message));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      alert("Name is required");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const config = {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      };
+
+      if (editingMember) {
+        // PUT edit
+        await axios.put(`${API_BASE_URL}/api/admin/members/${editingMember.id}`, formData, config);
+      } else {
+        // POST create
+        await axios.post(`${API_BASE_URL}/api/admin/members`, formData, config);
+      }
+
+      setIsModalOpen(false);
+      fetchMembers();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save member: " + (err.response?.data?.error || err.message));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Grouping members
+  const clubHeads = members.filter(m => m.role_type === 'head');
+  const coreCommittee = members.filter(m => m.role_type === 'core');
+  const pocMembers = members.filter(m => m.role_type === 'poc');
+
+  // Reusable Member Grid Component
+  const MemberGrid = ({ title, members, roleType }) => (
+    <section className="member-section">
+      <h2 className="section-title" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        {title}
+        {isAdmin && (
+          <button 
+            className="add-member-section-btn" 
+            onClick={() => handleOpenAdd(roleType)}
+            title={`Add to ${title}`}
+          >
+            <FaPlus size={12} /> Add
+          </button>
+        )}
+      </h2>
+      
       <div className="members-grid">
-        {members.map((member, index) => ( // Added index for animation delay key
-          <div className="member-card" key={member.name} style={{ animationDelay: `${0.1 * index}s` }}> {/* Add staggered delay */}
+        {members.map((member, index) => (
+          <div className="member-card" key={member.id || member.name} style={{ animationDelay: `${0.05 * index}s` }}>
+            {isAdmin && (
+              <div className="member-card-actions">
+                <button 
+                  className="member-action-btn edit" 
+                  onClick={() => handleOpenEdit(member)}
+                  title="Edit details"
+                >
+                  <FaPen size={12} />
+                </button>
+                <button 
+                  className="member-action-btn delete" 
+                  onClick={() => handleDelete(member.id, member.name)}
+                  title="Remove member"
+                >
+                  <FaTrashAlt size={12} />
+                </button>
+              </div>
+            )}
+
             <div className="member-photo-wrapper">
               <img
-                src={member.photo}
+                src={member.photo.startsWith('http') || member.photo.startsWith('/') ? (member.photo.startsWith('/Members/') ? `${API_BASE_URL}${member.photo}` : member.photo) : '/images/avatar_placeholder.png'}
                 alt={`${member.name}`}
                 className="member-photo"
-                onError={(e) => e.target.src = '/images/avatar_placeholder.png'} // Placeholder
+                onError={(e) => {
+                  e.target.src = '/images/avatar_placeholder.png';
+                }}
               />
             </div>
             <h3 className="member-name">{member.name}</h3>
             {member.quote && <p className="member-quote">"{member.quote}"</p>}
-            <a
-              href={member.instaLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="insta-link"
-              aria-label={`${member.name}'s Instagram profile`}
-            >
-              <FaInstagram className="insta-icon" /> {/* Added Icon */}
-              <span>{member.instagram}</span> {/* Wrapped text in span */}
-            </a>
+            
+            {member.instagram && (
+              <a
+                href={member.instaLink || `https://www.instagram.com/${member.instagram.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="insta-link"
+                aria-label={`${member.name}'s Instagram profile`}
+              >
+                <FaInstagram className="insta-icon" />
+                <span>{member.instagram}</span>
+              </a>
+            )}
           </div>
         ))}
       </div>
@@ -89,20 +217,139 @@ const ClubInfo = () => {
   );
 
   return (
-    // Changed outer class name
     <div className="club-info-page">
-      <div className="club-info-container"> {/* Optional inner container */}
-        <h1 className="page-title">Meet Our Team</h1> {/* Changed title & class */}
+      <div className="club-info-container">
+        <h1 className="page-title">Meet Our Team</h1>
         <p className="intro-text">
           Driven by passion and creativity, our members are the heartbeat of Capturesque. Get to know the faces behind the lens.
         </p>
 
-        {/* Render Each Section */}
-        {/* Use emojis or keep text, styled with CSS */}
-        <MemberGrid title="Club Heads" members={clubHeads} />
-        <MemberGrid title="Core Committee" members={coreCommittee} />
-        <MemberGrid title="POC Members" members={pocMembers} />
+        {loading ? (
+          <div style={{ padding: '60px 0', fontSize: '1.2rem', color: '#1f2937', fontWeight: 600 }}>
+            <FaSpinner className="spinner-icon" style={{ marginRight: 8 }} /> Loading team details...
+          </div>
+        ) : error ? (
+          <div style={{ padding: '40px 20px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: 8, color: '#ef4444', margin: '20px 0' }}>
+            {error}
+          </div>
+        ) : (
+          <>
+            <MemberGrid title="Club Heads" members={clubHeads} roleType="head" />
+            <MemberGrid title="Core Committee" members={coreCommittee} roleType="core" />
+            <MemberGrid title="POC Members" members={pocMembers} roleType="poc" />
+          </>
+        )}
       </div>
+
+      {/* Add / Edit Member Modal Popup */}
+      {isModalOpen && (
+        <div className="member-modal-overlay" onClick={() => setIsModalOpen(false)}>
+          <div className="member-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="member-modal-title">
+              {editingMember ? 'Edit Team Member' : 'Add Team Member'}
+            </h3>
+
+            <form onSubmit={handleSubmit}>
+              <div className="member-form-group">
+                <label className="member-form-label">Full Name *</label>
+                <input 
+                  type="text" 
+                  className="member-form-input" 
+                  value={formData.name} 
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  required 
+                  placeholder="e.g. Dharanidharan"
+                />
+              </div>
+
+              <div className="member-form-group">
+                <label className="member-form-label">Role Category</label>
+                <select 
+                  className="member-form-select"
+                  value={formData.role_type}
+                  onChange={e => setFormData(prev => ({ ...prev, role_type: e.target.value }))}
+                >
+                  <option value="head">Club Head</option>
+                  <option value="core">Core Committee</option>
+                  <option value="poc">POC Member</option>
+                </select>
+              </div>
+
+              <div className="member-form-group">
+                <label className="member-form-label">Avatar / Photo</label>
+                <div className="member-file-upload-wrapper">
+                  <img 
+                    src={formData.photo.startsWith('/Members/') ? `${API_BASE_URL}${formData.photo}` : formData.photo} 
+                    alt="Preview" 
+                    className="member-avatar-preview"
+                    onError={e => e.target.src = '/images/avatar_placeholder.png'}
+                  />
+                  <label className="member-upload-btn-label">
+                    {uploading ? 'Uploading...' : 'Choose File'}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      style={{ display: 'none' }} 
+                      onChange={handleAvatarUpload}
+                      disabled={uploading}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="member-form-group">
+                <label className="member-form-label">Quote</label>
+                <textarea 
+                  className="member-form-textarea"
+                  value={formData.quote}
+                  onChange={e => setFormData(prev => ({ ...prev, quote: e.target.value }))}
+                  placeholder="e.g. Photography is the story I fail to put into words."
+                />
+              </div>
+
+              <div className="member-form-group">
+                <label className="member-form-label">Instagram Username</label>
+                <input 
+                  type="text" 
+                  className="member-form-input" 
+                  value={formData.instagram} 
+                  onChange={e => setFormData(prev => ({ ...prev, instagram: e.target.value }))}
+                  placeholder="e.g. @this_is_dharanidharan"
+                />
+              </div>
+
+              <div className="member-form-group">
+                <label className="member-form-label">Instagram Profile Link</label>
+                <input 
+                  type="url" 
+                  className="member-form-input" 
+                  value={formData.instaLink} 
+                  onChange={e => setFormData(prev => ({ ...prev, instaLink: e.target.value }))}
+                  placeholder="e.g. https://www.instagram.com/this_is_dharanidharan"
+                />
+              </div>
+
+              <div className="member-modal-actions">
+                <button 
+                  type="button" 
+                  className="member-modal-btn cancel" 
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="member-modal-btn submit" 
+                  disabled={submitting || uploading}
+                >
+                  {submitting ? 'Saving...' : 'Save Member'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -42,12 +42,28 @@ const ListView = ({
                   </td>
                 )}
                 <td style={{ padding: '8px 12px' }}>
-                  <img
-                    src={image.thumbnail}
-                    alt={image.name}
-                    style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }}
-                    onError={e => e.currentTarget.src = FALLBACK_IMG}
-                  />
+                  {(() => {
+                    const extVal = (image.name || '').split('.').pop().toLowerCase();
+                    const isVideo = ['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(extVal);
+                    if (isVideo) {
+                      return (
+                        <video
+                          src={image.url}
+                          preload="metadata"
+                          muted
+                          style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, background: '#000' }}
+                        />
+                      );
+                    }
+                    return (
+                      <img
+                        src={image.thumbnail}
+                        alt={image.name}
+                        style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }}
+                        onError={e => e.currentTarget.src = FALLBACK_IMG}
+                      />
+                    );
+                  })()}
                 </td>
                 <td style={{ padding: '12px', fontWeight: 500, color: 'var(--text-primary)' }}>
                   {image.name}

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { FaSpinner, FaExclamationTriangle, FaDownload, FaTrashAlt } from 'react-icons/fa';
 import './Gallery.css';
 import { API_BASE_URL, ROOT_FOLDER, PAGE_SIZE, FALLBACK_IMG } from './config.js';
-import { getCurrentUser, encodePath, normalizePathParts, getRelFolderFromImageUrl } from './helper.js';
+import { getCurrentUser, encodePath, normalizePathParts } from './helper.js';
 
 import ConfirmModal from './components/ConfirmModal.jsx';
 import Toast from './components/Toast.jsx';
@@ -28,6 +28,8 @@ import { downloadImage as helperDownloadImage, renameImage as helperRenameImage,
 import { toggleSelectImageHelper, selectAllHelper, clearSelectionHelper } from './helpers/Selection.jsx';
 import { v4 as uuidv4 } from 'uuid';
 
+const rootParts = normalizePathParts(ROOT_FOLDER);
+
 export default function Gallery() {
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -42,12 +44,58 @@ export default function Gallery() {
   const user = getCurrentUser();
   const isLoggedIn = !!user;
   const isAdmin = !!(user && (user.role === 'admin' || user.is_admin === true));
+  const isPhotographer = !!(user && (user.role === 'photographer' || user.role === 'admin' || user.is_admin === true));
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+
+  // Admin Dashboard States & API Methods
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [adminLogs, setAdminLogs] = useState([]);
+  const [adminActiveTab, setAdminActiveTab] = useState('users'); // 'users' or 'logs'
+  const [adminLoading, setAdminLoading] = useState(false);
+
+  const fetchAdminData = useCallback(async () => {
+    if (!isAdmin) return;
+    setAdminLoading(true);
+    try {
+      const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+      const [usersRes, logsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/admin/users`, { headers }),
+        axios.get(`${API_BASE_URL}/api/admin/logs`, { headers })
+      ]);
+      setAdminUsers(usersRes.data || []);
+      setAdminLogs(logsRes.data || []);
+    } catch (err) {
+      console.error("Failed to fetch admin dashboard data:", err);
+    } finally {
+      setAdminLoading(false);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdminModalOpen) {
+      fetchAdminData();
+    }
+  }, [isAdminModalOpen, fetchAdminData]);
+
+  const togglePhotographerRole = async (targetUser) => {
+    const newRole = targetUser.role === 'photographer' ? 'user' : 'photographer';
+    try {
+      const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+      const url = `${API_BASE_URL}/api/admin/users/${targetUser.id}/role`;
+      const res = await axios.post(url, { role: newRole }, { headers });
+      notify(res.data?.message || `Updated role to ${newRole}`);
+      setAdminUsers(prev => prev.map(u => u.id === targetUser.id ? { ...u, role: newRole } : u));
+    } catch (err) {
+      alert(`Role change failed: ${err.response?.data?.error || err.message}`);
+    }
+  };
+
   const [selectedImage, setSelectedImage] = useState(null);
   const fileInputRef = useRef(null);
   const [folderSearch, setFolderSearch] = useState('');
-  const [sortOrder, setSortOrder] = useState('nameAsc');
-  const [extFilter, setExtFilter] = useState('all');
+  const [sortOrder] = useState('nameAsc');
+  const [extFilter] = useState('all');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -60,12 +108,10 @@ export default function Gallery() {
   const [isWidgetMinimized, setIsWidgetMinimized] = useState(false);
   const [uploadingActive, setUploadingActive] = useState(false);
 
-  const notify = (msg, ms = 3500) => {
+  const notify = useCallback((msg, ms = 3500) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), ms);
-  };
-
-  const rootParts = normalizePathParts(ROOT_FOLDER);
+  }, []);
 
   /* ------------------
      Modular wrappers
@@ -85,11 +131,11 @@ export default function Gallery() {
     });
   }, []);
 
-  const fetchSubfoldersLocal = async (folderId) => {
+  const fetchSubfoldersLocal = useCallback(async (folderId) => {
     await fetchSubfolders(folderId, setSubfolders);
-  };
+  }, []);
 
-  const refreshCurrent = async () => {
+  const refreshCurrent = useCallback(async () => {
     if (selectedFolder) {
       await fetchImages(selectedFolder.folderId);
       const depthRelative = normalizePathParts(selectedFolder.folderId).length - rootParts.length;
@@ -98,7 +144,7 @@ export default function Gallery() {
     } else {
       await fetchRootFolders();
     }
-  };
+  }, [selectedFolder, fetchImages, fetchSubfoldersLocal, fetchRootFolders]);
 
   /* ------------------
      Mount / Unmount
@@ -250,26 +296,47 @@ export default function Gallery() {
         [nextId]: { ...prev[nextId], status: 'uploading' }
       }));
 
-      const formData = new FormData();
-      formData.append('file', task.file);
-      formData.append('folderId', task.folderId);
-      // Optional: Add custom filename/description if needed, for now just file
-
       try {
-        const url = `${API_BASE_URL}/api/upload/${encodePath(task.folderId)}`;
-        await axios.post(url, formData, {
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: (progressEvent) => {
-            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadQueue(prev => ({
-              ...prev,
-              [nextId]: { ...prev[nextId], progress: percent }
-            }));
+        const file = task.file;
+        const folderId = task.folderId;
+        const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+        const totalChunks = Math.ceil(file.size / chunkSize);
+        let chunkIndex = 0;
+
+        const uploadNextChunk = async () => {
+          const start = chunkIndex * chunkSize;
+          const end = Math.min(start + chunkSize, file.size);
+          const chunk = file.slice(start, end);
+
+          const formData = new FormData();
+          formData.append('file', chunk, file.name);
+          formData.append('filename', file.name);
+          formData.append('chunkIndex', chunkIndex);
+          formData.append('totalChunks', totalChunks);
+          formData.append('folderId', folderId);
+
+          const url = `${API_BASE_URL}/api/upload-chunk`;
+          await axios.post(url, formData, {
+            headers: {
+              ...getAuthHeaders(),
+              'Content-Type': 'multipart/form-data',
+            }
+          });
+
+          // Calculate overall progress percentage
+          const percent = Math.round((end * 100) / file.size);
+          setUploadQueue(prev => ({
+            ...prev,
+            [nextId]: { ...prev[nextId], progress: percent }
+          }));
+
+          if (chunkIndex < totalChunks - 1) {
+            chunkIndex++;
+            await uploadNextChunk();
           }
-        });
+        };
+
+        await uploadNextChunk();
 
         // Success
         setUploadQueue(prev => ({
@@ -277,10 +344,7 @@ export default function Gallery() {
           [nextId]: { ...prev[nextId], status: 'completed', progress: 100 }
         }));
 
-        // Refresh visible grid to show new image incrementally (Google Drive feel)
         if (selectedFolder && selectedFolder.folderId === task.folderId) {
-          // We can trigger a lightweight refresh or just wait for explicit refresh
-          // For better UX, let's refresh.
           fetchImages(task.folderId);
         }
 
@@ -295,14 +359,14 @@ export default function Gallery() {
 
     const timer = setTimeout(processQueue, 100); // small delay to allow state updates
     return () => clearTimeout(timer);
-  }, [uploadQueue, uploadingActive, selectedFolder, fetchImages, getAuthHeaders]);
+  }, [uploadQueue, uploadingActive, selectedFolder, fetchImages, getAuthHeaders, refreshCurrent]);
 
 
   /* ------------------
      Folder Create/Rename/Delete
   ------------------- */
   const createFolder = async (asRoot = true) => {
-    if (!isAdmin) return alert('Only admins can create folders.');
+    if (!isPhotographer) return alert('Only photographers and admins can create folders.');
     const parentName = asRoot ? ROOT_FOLDER : selectedFolder?.folderName;
     let name = prompt(`Create a new folder under "${parentName}"`);
     if (!name?.trim()) return;
@@ -318,7 +382,7 @@ export default function Gallery() {
   };
 
   const renameFolder = async (folder) => {
-    if (!isAdmin) return alert('Only admins can rename folders.');
+    if (!isPhotographer) return alert('Only photographers and admins can rename folders.');
     if (!folder?.folderId) return;
     const currentName = folder.folderName;
     const newName = prompt(`Rename folder "${currentName}" to:`);
@@ -364,13 +428,13 @@ export default function Gallery() {
   };
 
   const requestDeleteImage = (image) => {
-    if (!isAdmin) return alert('Only admins can delete images.');
+    if (!isPhotographer) return alert('Only photographers and admins can delete images.');
     setDeleteTarget({ image, folderId: selectedFolder?.folderId });
     setConfirmOpen(true);
   };
 
   const requestDeleteSelected = () => {
-    if (!isAdmin) return alert('Only admins can delete images.');
+    if (!isPhotographer) return alert('Only photographers and admins can delete images.');
     const images = imagesAll.filter(i => selectedIds.has(i.id));
     if (!images.length) return notify('No images selected');
     setDeleteTarget({ images, folderId: selectedFolder?.folderId });
@@ -378,7 +442,7 @@ export default function Gallery() {
   };
 
   const requestDeleteFolder = (folder) => {
-    if (!isAdmin) return alert('Only admins can delete folders.');
+    if (!isPhotographer) return alert('Only photographers and admins can delete folders.');
     setDeleteTarget({ type: 'folder', ...folder });
     setConfirmOpen(true);
   };
@@ -440,7 +504,7 @@ export default function Gallery() {
   };
 
   const renameImage = async (image) => {
-    await helperRenameImage({ image, selectedFolder, notify, fetchImages, setSelectedImage, isAdmin });
+    await helperRenameImage({ image, selectedFolder, notify, fetchImages, setSelectedImage, isAdmin: isPhotographer });
   };
 
   const selectAll = () => selectAllHelper(imagesVisible, setSelectedIds);
@@ -465,10 +529,12 @@ export default function Gallery() {
           toggleSelectMode={toggleSelectMode}
           setViewMode={setViewMode}
           viewMode={viewMode}
+          isPhotographer={isPhotographer}
           isAdmin={isAdmin}
           isLoggedIn={isLoggedIn}
           selectedIds={selectedIds}
           onNavigate={navigateToFolderId}
+          onOpenAdminPanel={() => setIsAdminModalOpen(true)}
         />
         {selectedFolder ? (
           <>
@@ -481,14 +547,14 @@ export default function Gallery() {
                     onOpen={openFolder}
                     onRename={renameFolder}
                     onDelete={requestDeleteFolder}
-                    isAdmin={isAdmin}
+                    isAdmin={isPhotographer}
                   />
                 ))}
               </div>
             )}
 
             {/* Standard Upload Area (Empty State or Initial) */}
-            {isAdmin && (
+            {isPhotographer && (
               <UploadArea
                 fileInputRef={fileInputRef}
                 onFileInputChange={handleFileInputChange}
@@ -508,7 +574,7 @@ export default function Gallery() {
               <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button className="btn" onClick={selectAll}>Select visible</button>
                 <button className="btn" onClick={clearSelection}>Clear</button>
-                {isAdmin && <button className="btn danger" onClick={requestDeleteSelected}><FaTrashAlt /> Delete</button>}
+                {isPhotographer && <button className="btn danger" onClick={requestDeleteSelected}><FaTrashAlt /> Delete</button>}
                 {isLoggedIn && <button className="btn" onClick={downloadSelected}><FaDownload /> Download</button>}
                 <div style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>{selectedIds.size} selected</div>
               </div>
@@ -524,7 +590,7 @@ export default function Gallery() {
                   selectedIds={selectedIds}
                   onImageClick={(image) => selectMode ? toggleSelectImage(image.id) : openModal(image)}
                   onImageDelete={requestDeleteImage}
-                  isAdmin={isAdmin}
+                  isAdmin={isPhotographer}
                 />
               ) : (
                 <ListView
@@ -535,7 +601,7 @@ export default function Gallery() {
                   onImageDelete={requestDeleteImage}
                   onImageDownload={downloadImage}
                   onImageCopyLink={copyImageLink}
-                  isAdmin={isAdmin}
+                  isAdmin={isPhotographer}
                   isLoggedIn={isLoggedIn}
                 />
               )
@@ -556,7 +622,7 @@ export default function Gallery() {
                 onOpen={openFolder}
                 onRename={renameFolder}
                 onDelete={requestDeleteFolder}
-                isAdmin={isAdmin}
+                isAdmin={isPhotographer}
               />
             ))}
           </div>
@@ -566,12 +632,14 @@ export default function Gallery() {
       <ImageModal
         open={isModalOpen}
         image={selectedImage}
+        selectedFolder={selectedFolder}
         onClose={closeModal}
         onDownload={downloadImage}
         onRename={renameImage}
         onDelete={requestDeleteImage}
         isLoggedIn={isLoggedIn}
         isAdmin={isAdmin}
+        isPhotographer={isPhotographer}
       />
 
       <ConfirmModal
@@ -592,6 +660,124 @@ export default function Gallery() {
         minimized={isWidgetMinimized}
         toggleMinimized={() => setIsWidgetMinimized(!isWidgetMinimized)}
       />
+
+      {/* Admin Dashboard Modal */}
+      {isAdminModalOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setIsAdminModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 800, width: '90%' }}>
+            <button className="modal-close-btn" onClick={() => setIsAdminModalOpen(false)} aria-label="Close admin dashboard">
+              &times;
+            </button>
+            <h3 style={{ marginBottom: 16 }}>Admin Dashboard</h3>
+            
+            <div className="admin-tabs" style={{ display: 'flex', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 8, marginBottom: 16 }}>
+              <button 
+                className={`btn small ${adminActiveTab === 'users' ? 'primary' : 'secondary'}`} 
+                onClick={() => setAdminActiveTab('users')}
+              >
+                User Access Control
+              </button>
+              <button 
+                className={`btn small ${adminActiveTab === 'logs' ? 'primary' : 'secondary'}`} 
+                onClick={() => setAdminActiveTab('logs')}
+              >
+                Photographer Logs
+              </button>
+            </div>
+
+            {adminLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <FaSpinner className="spinner-icon" /> Loading...
+              </div>
+            ) : adminActiveTab === 'users' ? (
+              <div className="admin-table-container" style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      <th style={{ padding: 8 }}>Email</th>
+                      <th style={{ padding: 8 }}>Role</th>
+                      <th style={{ padding: 8, textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminUsers.map(u => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: 8 }}>{u.email}</td>
+                        <td style={{ padding: 8 }}>
+                          <span className={`role-badge ${u.role}`} style={{
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            backgroundColor: u.role === 'admin' ? '#dc3545' : u.role === 'photographer' ? '#17a2b8' : 'rgba(255,255,255,0.1)',
+                            color: '#fff'
+                          }}>
+                            {u.role.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: 8, textAlign: 'right' }}>
+                          {u.role !== 'admin' && (
+                            <button 
+                              className={`btn small ${u.role === 'photographer' ? 'danger' : 'success'}`}
+                              onClick={() => togglePhotographerRole(u)}
+                            >
+                              {u.role === 'photographer' ? 'Revoke Access' : 'Make Photographer'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="admin-table-container" style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      <th style={{ padding: 8 }}>Time</th>
+                      <th style={{ padding: 8 }}>Photographer</th>
+                      <th style={{ padding: 8 }}>Action</th>
+                      <th style={{ padding: 8 }}>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminLogs.map(l => (
+                      <tr key={l.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.9rem' }}>
+                        <td style={{ padding: 8, whiteSpace: 'nowrap', opacity: 0.7 }}>{l.timestamp}</td>
+                        <td style={{ padding: 8 }}>{l.userEmail}</td>
+                        <td style={{ padding: 8 }}>
+                          <span style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            backgroundColor: l.action.includes('delete') ? 'rgba(220,53,69,0.2)' : 'rgba(40,167,69,0.2)',
+                            color: l.action.includes('delete') ? '#ff6b6b' : '#2ecc71'
+                          }}>
+                            {l.action.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ padding: 8, opacity: 0.8 }}>{l.details || '-'}</td>
+                      </tr>
+                    ))}
+                    {adminLogs.length === 0 && (
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', padding: '20px 0', opacity: 0.5 }}>
+                          No activity logs found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div style={{ marginTop: 20, textAlign: 'right' }}>
+              <button className="btn" onClick={() => setIsAdminModalOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Toast message={toast} />
     </div>

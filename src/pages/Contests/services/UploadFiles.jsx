@@ -15,7 +15,7 @@ export default async function uploadFilesFn({
   notify,
   fetchImages,
 }) {
-  if (!isAdmin) return alert('Only admins can upload files.');
+  if (!isAdmin) return alert('Only photographers and admins can upload files.');
   if (!selectedFolder?.folderId || !selectedFiles.length) {
     alert(!selectedFolder?.folderId ? 'Select a folder first.' : 'No files selected.');
     return;

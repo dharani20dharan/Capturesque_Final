@@ -57,7 +57,7 @@ export async function renameImage({
   isAdmin,
 }) {
   if (!isAdmin) {
-    alert("Only admins can rename images.");
+    alert("Only photographers and admins can rename images.");
     return;
   }
 

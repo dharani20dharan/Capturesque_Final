@@ -282,3 +282,187 @@ transform: translateY(-2px); /* Slight lift on hover */
       transform: translateY(0) scale(1);
   }
 }
+
+/* --- Admin Member Editor CSS --- */
+.add-member-section-btn {
+  background: var(--clubinfo-accent);
+  color: var(--clubinfo-text-on-accent);
+  border: none;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 15px;
+  font-weight: 500;
+  font-family: var(--clubinfo-font-primary);
+  transition: all 0.3s ease;
+  vertical-align: middle;
+}
+.add-member-section-btn:hover {
+  background: var(--clubinfo-accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+}
+
+.member-card-actions {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+.member-card:hover .member-card-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.member-action-btn {
+  background: #1f2937;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.member-action-btn:hover {
+  transform: scale(1.15);
+}
+.member-action-btn.edit:hover {
+  background: #0ea5e9;
+  color: #fff;
+}
+.member-action-btn.delete:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+.member-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+.member-modal-content {
+  background: #111827;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  padding: 30px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  color: #f9fafb;
+  animation: scaleIn 0.3s ease;
+}
+.member-modal-title {
+  font-family: var(--clubinfo-font-primary);
+  font-size: 1.5rem;
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #f59e0b; /* amber yellow */
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 10px;
+}
+.member-form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.member-form-label {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.member-form-input, .member-form-select, .member-form-textarea {
+  background: #1f2937;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.member-form-input:focus, .member-form-select:focus, .member-form-textarea:focus {
+  border-color: #f59e0b;
+}
+.member-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+.member-file-upload-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.member-avatar-preview {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f59e0b;
+}
+.member-upload-btn-label {
+  background: #374151;
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+.member-upload-btn-label:hover {
+  background: #4b5563;
+}
+.member-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+.member-modal-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  transition: all 0.2s;
+}
+.member-modal-btn.cancel {
+  background: #374151;
+  color: #fff;
+}
+.member-modal-btn.cancel:hover {
+  background: #4b5563;
+}
+.member-modal-btn.submit {
+  background: #f59e0b;
+  color: #000;
+}
+.member-modal-btn.submit:hover {
+  background: #fbbf24;
+  transform: translateY(-1px);
+}
+.member-modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

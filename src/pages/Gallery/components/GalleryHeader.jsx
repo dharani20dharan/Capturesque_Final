@@ -13,10 +13,12 @@ const GalleryHeader = ({
   toggleSelectMode,
   setViewMode,
   viewMode,
+  isPhotographer,
   isAdmin,
   isLoggedIn,
   selectedIds,
   onNavigate,
+  onOpenAdminPanel,
 }) => {
   const [scrolled, setScrolled] = useState(false);
 
@@ -50,7 +52,7 @@ const GalleryHeader = ({
                   {isLast ? (
                     <span className="breadcrumb-current" style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       {segment}
-                      {selectedFolder && isAdmin && (
+                      {selectedFolder && isPhotographer && (
                         <button className="btn small" title="Rename folder" onClick={() => renameFolder(selectedFolder)} style={{ border: 'none', padding: 4 }}>
                           <FaPen size={10} />
                         </button>
@@ -58,9 +60,9 @@ const GalleryHeader = ({
                     </span>
                   ) : (
                     <span
-                      className="breadcrumb-link"
-                      onClick={() => onNavigate(index === 0 ? null : folderId)}
-                      style={{ cursor: 'pointer', color: '#007bff', fontWeight: 500 }}
+                       className="breadcrumb-link"
+                       onClick={() => onNavigate(index === 0 ? null : folderId)}
+                       style={{ cursor: 'pointer', color: '#007bff', fontWeight: 500 }}
                     >
                       {segment}
                     </span>
@@ -77,7 +79,7 @@ const GalleryHeader = ({
               </button>
             </div>
           ) : (
-            isAdmin && (
+            isPhotographer && (
               <div style={{ marginTop: 8 }}>
                 <button className="btn primary small" onClick={() => createFolder(true)}>
                   <FaFolderPlus /> New Folder
@@ -89,6 +91,20 @@ const GalleryHeader = ({
       </div>
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        {isAdmin && (
+          <button 
+            className="btn small secondary" 
+            onClick={onOpenAdminPanel}
+            style={{ 
+              background: 'rgba(255, 193, 7, 0.1)', 
+              color: '#ffc107', 
+              borderColor: '#ffc107',
+              fontWeight: '600'
+            }}
+          >
+            Admin Panel
+          </button>
+        )}
         {!selectedFolder ? (
           <div style={{ position: 'relative' }}>
             <input

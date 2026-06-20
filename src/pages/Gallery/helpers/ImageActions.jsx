@@ -40,7 +40,7 @@ export async function downloadImage({ image, selectedFolder, notify, isLoggedIn 
  * params: { image, selectedFolder, notify, fetchImages, setSelectedImage, isAdmin }
  */
 export async function renameImage({ image, selectedFolder, notify, fetchImages, setSelectedImage, isAdmin }) {
-  if (!isAdmin) return alert('Only admins can rename images.');
+  if (!isAdmin) return alert('Only photographers and admins can rename images.');
   if (!image?.name || !selectedFolder?.folderId) return;
   const newName = prompt(`Rename image "${image.name}" to:`);
   if (!newName || newName.trim() === '' || newName === image.name) return;

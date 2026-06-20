@@ -4,7 +4,7 @@ import axios from 'axios';
 import { FaSpinner, FaExclamationTriangle, FaDownload, FaTrashAlt } from 'react-icons/fa';
 import './Contests.css';
 import { API_BASE_URL, ROOT_FOLDER, PAGE_SIZE, FALLBACK_IMG } from './config.js';
-import { getCurrentUser, encodePath, normalizePathParts, getRelFolderFromImageUrl } from './helper.js';
+import { getCurrentUser, encodePath, normalizePathParts } from './helper.js';
 
 import ConfirmModal from './components/ConfirmModal.jsx';
 import Toast from './components/Toast.jsx';
@@ -28,7 +28,9 @@ import { downloadImage as helperDownloadImage, renameImage as helperRenameImage,
 import { toggleSelectImageHelper, selectAllHelper, clearSelectionHelper } from './helpers/Selection.jsx';
 import { v4 as uuidv4 } from 'uuid';
 
-export default function Gallery() {
+const rootParts = normalizePathParts(ROOT_FOLDER);
+
+export default function Contests() {
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [subfolders, setSubfolders] = useState([]);
@@ -42,12 +44,13 @@ export default function Gallery() {
   const user = getCurrentUser();
   const isLoggedIn = !!user;
   const isAdmin = !!(user && (user.role === 'admin' || user.is_admin === true));
+  const isPhotographer = !!(user && (user.role === 'photographer' || user.role === 'admin' || user.is_admin === true));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const fileInputRef = useRef(null);
   const [folderSearch, setFolderSearch] = useState('');
-  const [sortOrder, setSortOrder] = useState('nameAsc');
-  const [extFilter, setExtFilter] = useState('all');
+  const [sortOrder] = useState('nameAsc');
+  const [extFilter] = useState('all');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -60,12 +63,10 @@ export default function Gallery() {
   const [isWidgetMinimized, setIsWidgetMinimized] = useState(false);
   const [uploadingActive, setUploadingActive] = useState(false);
 
-  const notify = (msg, ms = 3500) => {
+  const notify = useCallback((msg, ms = 3500) => {
     setToast(msg);
     window.setTimeout(() => setToast(null), ms);
-  };
-
-  const rootParts = normalizePathParts(ROOT_FOLDER);
+  }, []);
 
   /* ------------------
      Modular wrappers
@@ -85,11 +86,11 @@ export default function Gallery() {
     });
   }, []);
 
-  const fetchSubfoldersLocal = async (folderId) => {
+  const fetchSubfoldersLocal = useCallback(async (folderId) => {
     await fetchSubfolders(folderId, setSubfolders);
-  };
+  }, []);
 
-  const refreshCurrent = async () => {
+  const refreshCurrent = useCallback(async () => {
     if (selectedFolder) {
       await fetchImages(selectedFolder.folderId);
       const depthRelative = normalizePathParts(selectedFolder.folderId).length - rootParts.length;
@@ -98,7 +99,7 @@ export default function Gallery() {
     } else {
       await fetchRootFolders();
     }
-  };
+  }, [selectedFolder, fetchImages, fetchSubfoldersLocal, fetchRootFolders]);
 
   /* ------------------
      Mount / Unmount
@@ -250,26 +251,47 @@ export default function Gallery() {
         [nextId]: { ...prev[nextId], status: 'uploading' }
       }));
 
-      const formData = new FormData();
-      formData.append('file', task.file);
-      formData.append('folderId', task.folderId);
-      // Optional: Add custom filename/description if needed, for now just file
-
       try {
-        const url = `${API_BASE_URL}/api/upload/${encodePath(task.folderId)}`;
-        await axios.post(url, formData, {
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: (progressEvent) => {
-            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadQueue(prev => ({
-              ...prev,
-              [nextId]: { ...prev[nextId], progress: percent }
-            }));
+        const file = task.file;
+        const folderId = task.folderId;
+        const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+        const totalChunks = Math.ceil(file.size / chunkSize);
+        let chunkIndex = 0;
+
+        const uploadNextChunk = async () => {
+          const start = chunkIndex * chunkSize;
+          const end = Math.min(start + chunkSize, file.size);
+          const chunk = file.slice(start, end);
+
+          const formData = new FormData();
+          formData.append('file', chunk, file.name);
+          formData.append('filename', file.name);
+          formData.append('chunkIndex', chunkIndex);
+          formData.append('totalChunks', totalChunks);
+          formData.append('folderId', folderId);
+
+          const url = `${API_BASE_URL}/api/upload-chunk`;
+          await axios.post(url, formData, {
+            headers: {
+              ...getAuthHeaders(),
+              'Content-Type': 'multipart/form-data',
+            }
+          });
+
+          // Calculate overall progress percentage
+          const percent = Math.round((end * 100) / file.size);
+          setUploadQueue(prev => ({
+            ...prev,
+            [nextId]: { ...prev[nextId], progress: percent }
+          }));
+
+          if (chunkIndex < totalChunks - 1) {
+            chunkIndex++;
+            await uploadNextChunk();
           }
-        });
+        };
+
+        await uploadNextChunk();
 
         // Success
         setUploadQueue(prev => ({
@@ -277,10 +299,7 @@ export default function Gallery() {
           [nextId]: { ...prev[nextId], status: 'completed', progress: 100 }
         }));
 
-        // Refresh visible grid to show new image incrementally (Google Drive feel)
         if (selectedFolder && selectedFolder.folderId === task.folderId) {
-          // We can trigger a lightweight refresh or just wait for explicit refresh
-          // For better UX, let's refresh.
           fetchImages(task.folderId);
         }
 
@@ -295,14 +314,14 @@ export default function Gallery() {
 
     const timer = setTimeout(processQueue, 100); // small delay to allow state updates
     return () => clearTimeout(timer);
-  }, [uploadQueue, uploadingActive, selectedFolder, fetchImages, getAuthHeaders]);
+  }, [uploadQueue, uploadingActive, selectedFolder, fetchImages, getAuthHeaders, refreshCurrent]);
 
 
   /* ------------------
      Folder Create/Rename/Delete
   ------------------- */
   const createFolder = async (asRoot = true) => {
-    if (!isAdmin) return alert('Only admins can create folders.');
+    if (!isPhotographer) return alert('Only photographers and admins can create folders.');
     const parentName = asRoot ? ROOT_FOLDER : selectedFolder?.folderName;
     let name = prompt(`Create a new folder under "${parentName}"`);
     if (!name?.trim()) return;
@@ -318,7 +337,7 @@ export default function Gallery() {
   };
 
   const renameFolder = async (folder) => {
-    if (!isAdmin) return alert('Only admins can rename folders.');
+    if (!isPhotographer) return alert('Only photographers and admins can rename folders.');
     if (!folder?.folderId) return;
     const currentName = folder.folderName;
     const newName = prompt(`Rename folder "${currentName}" to:`);
@@ -364,13 +383,13 @@ export default function Gallery() {
   };
 
   const requestDeleteImage = (image) => {
-    if (!isAdmin) return alert('Only admins can delete images.');
+    if (!isPhotographer) return alert('Only photographers and admins can delete images.');
     setDeleteTarget({ image, folderId: selectedFolder?.folderId });
     setConfirmOpen(true);
   };
 
   const requestDeleteSelected = () => {
-    if (!isAdmin) return alert('Only admins can delete images.');
+    if (!isPhotographer) return alert('Only photographers and admins can delete images.');
     const images = imagesAll.filter(i => selectedIds.has(i.id));
     if (!images.length) return notify('No images selected');
     setDeleteTarget({ images, folderId: selectedFolder?.folderId });
@@ -378,7 +397,7 @@ export default function Gallery() {
   };
 
   const requestDeleteFolder = (folder) => {
-    if (!isAdmin) return alert('Only admins can delete folders.');
+    if (!isPhotographer) return alert('Only photographers and admins can delete folders.');
     setDeleteTarget({ type: 'folder', ...folder });
     setConfirmOpen(true);
   };
@@ -440,7 +459,7 @@ export default function Gallery() {
   };
 
   const renameImage = async (image) => {
-    await helperRenameImage({ image, selectedFolder, notify, fetchImages, setSelectedImage, isAdmin });
+    await helperRenameImage({ image, selectedFolder, notify, fetchImages, setSelectedImage, isAdmin: isPhotographer });
   };
 
   const selectAll = () => selectAllHelper(imagesVisible, setSelectedIds);
@@ -465,7 +484,7 @@ export default function Gallery() {
           toggleSelectMode={toggleSelectMode}
           setViewMode={setViewMode}
           viewMode={viewMode}
-          isAdmin={isAdmin}
+          isPhotographer={isPhotographer}
           isLoggedIn={isLoggedIn}
           selectedIds={selectedIds}
           onNavigate={navigateToFolderId}
@@ -481,14 +500,14 @@ export default function Gallery() {
                     onOpen={openFolder}
                     onRename={renameFolder}
                     onDelete={requestDeleteFolder}
-                    isAdmin={isAdmin}
+                    isAdmin={isPhotographer}
                   />
                 ))}
               </div>
             )}
 
             {/* Standard Upload Area (Empty State or Initial) */}
-            {isAdmin && (
+            {isPhotographer && (
               <UploadArea
                 fileInputRef={fileInputRef}
                 onFileInputChange={handleFileInputChange}
@@ -508,7 +527,7 @@ export default function Gallery() {
               <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button className="btn" onClick={selectAll}>Select visible</button>
                 <button className="btn" onClick={clearSelection}>Clear</button>
-                {isAdmin && <button className="btn danger" onClick={requestDeleteSelected}><FaTrashAlt /> Delete</button>}
+                {isPhotographer && <button className="btn danger" onClick={requestDeleteSelected}><FaTrashAlt /> Delete</button>}
                 {isLoggedIn && <button className="btn" onClick={downloadSelected}><FaDownload /> Download</button>}
                 <div style={{ marginLeft: 'auto', color: 'var(--text-secondary)' }}>{selectedIds.size} selected</div>
               </div>
@@ -524,7 +543,7 @@ export default function Gallery() {
                   selectedIds={selectedIds}
                   onImageClick={(image) => selectMode ? toggleSelectImage(image.id) : openModal(image)}
                   onImageDelete={requestDeleteImage}
-                  isAdmin={isAdmin}
+                  isAdmin={isPhotographer}
                 />
               ) : (
                 <ListView
@@ -535,7 +554,7 @@ export default function Gallery() {
                   onImageDelete={requestDeleteImage}
                   onImageDownload={downloadImage}
                   onImageCopyLink={copyImageLink}
-                  isAdmin={isAdmin}
+                  isAdmin={isPhotographer}
                   isLoggedIn={isLoggedIn}
                 />
               )
@@ -556,7 +575,7 @@ export default function Gallery() {
                 onOpen={openFolder}
                 onRename={renameFolder}
                 onDelete={requestDeleteFolder}
-                isAdmin={isAdmin}
+                isAdmin={isPhotographer}
               />
             ))}
           </div>
@@ -566,12 +585,14 @@ export default function Gallery() {
       <ImageModal
         open={isModalOpen}
         image={selectedImage}
+        selectedFolder={selectedFolder}
         onClose={closeModal}
         onDownload={downloadImage}
         onRename={renameImage}
         onDelete={requestDeleteImage}
         isLoggedIn={isLoggedIn}
         isAdmin={isAdmin}
+        isPhotographer={isPhotographer}
       />
 
       <ConfirmModal

@@ -63,10 +63,32 @@ function decodeJwt(token) {
 
 export function getCurrentUser() {
   const token = localStorage.getItem('token');
-  const userStoredValue = localStorage.getItem('userRole');
   if (!token) return null;
   const p = decodeJwt(token);
   if (!p) return null;
-  const role = p.role || (userStoredValue == "admin" ? 'admin' : 'user');
-  return { ...p, role, token };
+  
+  let identity = {};
+  if (p.sub) {
+    try {
+      identity = JSON.parse(p.sub);
+    } catch {
+      if (typeof p.sub === 'object') {
+        identity = p.sub;
+      } else {
+        identity = { email: p.sub };
+      }
+    }
+  }
+
+  const role = identity.role || p.role || localStorage.getItem('userRole') || 'user';
+  const is_admin = identity.is_admin || p.is_admin || (role === 'admin');
+
+  return {
+    ...p,
+    id: identity.id || p.id,
+    email: identity.email || p.email || localStorage.getItem('userEmail'),
+    role,
+    is_admin,
+    token
+  };
 }

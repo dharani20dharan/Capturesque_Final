@@ -1,154 +1,123 @@
-# Capturesque – University Photography Gallery Platform
+# Capturesque 📸
+### University Photography Gallery Platform
 
-> **Status**: Production-ready Prototype | **Users**: 2000+ Students (Projected) | **Role**: Full Stack Engineer
+[![Vite](https://img.shields.io/badge/Vite-7.1.0-646CFF?style=flat&logo=vite&logoColor=white)](https://vite.dev/)
+[![React](https://img.shields.io/badge/React-19.1.1-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![Flask](https://img.shields.io/badge/Flask-3.0.3-000000?style=flat&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 
-**Capturesque** is a centralized, high-performance photography gallery platform engineered for Shiv Nadar University. It creates a seamless digital ecosystem for the photography club to manage, secure, and distribute event coverage to the student body, replacing fragmented Google Drive links and WhatsApp groups.
-
----
-
-## 🏗️ Project Overview
-
-This project was built to solve a specific scalability and accessibility problem faced by university clubs: **Media Fragmentation**. As usage scales to thousands of students and terabytes of data, relying on ad-hoc sharing methods becomes inefficient and insecure. Capturesque provides a robust, role-based platform for media archival and discovery.
+**Capturesque** is a centralized, high-performance photography gallery platform designed and engineered for Shiv Nadar University. It provides a seamless, secure, and modern digital ecosystem for the university's photography club to organize, store, and distribute event coverage to the student body, successfully replacing fragmented Google Drive folders and messy WhatsApp groups.
 
 ---
 
-## 🚩 Problem Statement
+## 🏗️ System Architecture
 
-1.  **Inefficient Retrieval**: Students spent considerable time searching through disparate Google Drive folders to find specific event coverage.
-2.  **Lack of Centralization**: No single source of truth for university event history.
-3.  **Security Gaps**: Drive links were often shared publicly without expiry or access logs.
-4.  **No Discovery**: Photos were unsearchable; users had to manually scroll through thousands of thumbnails.
+Capturesque is built using a decoupled Client-Server architecture. The frontend is a highly responsive Single Page Application (SPA), while the backend is a unified, resource-oriented Flask API handling both identity management and media transactions.
 
----
-
-## 🎯 User Requirements & Stakeholders
-
--   **Student User (Viewer)**:
-    -   Fast, responsive gallery view with infinite scroll/pagination.
-    -   Ability to download high-resolution images.
-    -   Advanced filtering by event date and category.
--   **Admin (Photographer)**:
-    -   Bulk upload capability for hundreds of high-res images.
-    -   Folder management (CRUD) directly mapped to event names.
-    -   Role-based security to prevent unauthorized deletions.
-
----
-
-## 📐 System Architecture
-
-I designed Capturesque using a **Service-Oriented Architecture (SOA)** approach to decouple concerns and improve maintainability.
-
-### High-Level Design
 ```mermaid
 graph TD
-    Client[React Frontend] -->|Auth Requests| AuthServer[Flask Auth Service :5000]
-    Client -->|Image Operations| GalleryServer[Flask Media Service :8087]
-    AuthServer -->|Read/Write| SQL[SQLite / Users DB]
-    GalleryServer -->|IO Ops| CampusServer[University Storage Server]
-    GalleryServer -.->|Validate Token| AuthServer
+    Client[React SPA Frontend :5173] -->|HTTP API Requests| Backend[Unified Flask Server :8087]
+    Backend -->|Read/Write Auth Data| DB[(SQLite Database : site.db)]
+    Backend -->|Read/Write Media Files| Storage[(Local/NAS Directory : ./Images)]
 ```
 
-1.  **Frontend (Client)**: A React Single Page Application (SPA) optimized for client-side rendering.
-2.  **Auth Service (Port 5000)**: Lightweight Flask service handling Identity Management (IAM), Registration, and JWT issuance.
-3.  **Media Service (Port 8087)**: High-throughput Flask service dedicated to file I/O operations (Upload, Rename, Stream).
-4.  **Data Strategy**:
-    -   **Identity**: SQLite (for User accounts) - chosen for ACID compliance.
-    -   **Assets**: **University Campus Server** - Leveraging on-premises high-availability storage for low-latency access within the campus intranet.
+1. **Frontend (Client)**: Built with React 19 and Vite. Optimized for fast rendering, lazy image loading, and smooth interactions.
+2. **Unified API Backend (Port 8087)**: A Flask server handling authentication (registration, secure login, password resets) and media operations (chunked uploads, file management, metadata association).
+3. **Data Layer**:
+   * **Identity & Club Info**: Managed via SQLite using SQLAlchemy ORM (with auto-migrating database schemas).
+   * **Assets**: Managed directly on-premises via local disk/Network Attached Storage (NAS) under the `./Images` directory, eliminating public cloud egress fees.
 
 ---
 
-## ⚙️ Key Engineering Decisions
+## ✨ Features & User Experience
 
-### 1. Decoupling Auth from Content
-**Decision**: Split the backend into `auth.py` and `gallery.py` (serving on different ports).
-**Trade-off**: Increases deployment complexity (managing two processes).
-**Benefit**: Prevents heavy image processing or upload tasks from blocking authentication requests. Allows independent scaling of the Media Service (which is I/O bound) vs. the Auth Service (CPU/Network bound).
+### 👥 Student Viewer
+* **Intuitive Gallery Navigation:** Browse photos by event folders with breadcrumb tracking.
+* **Dual View Layout:** Seamlessly switch between a visual **Grid View** and a detailed **List View**.
+* **High-Resolution Downloads:** Download individual images directly or select multiple photos to download as a compiled `.zip` file.
+* **Responsive Styling:** Sleek dark-mode aesthetic with custom animations, custom scrollbars, and modern typography.
 
-### 2. On-Premises Campus Storage vs. Cloud
-**Decision**: Utilize the University's local servers for image storage instead of public cloud (S3).
-**Trade-off**: Requires manual maintenance of hardware and backups.
-**Benefit**: **Zero Egress Costs** (bandwidth) and extremely low latency for students connected to the campus Wi-Fi. This aligns with the data sovereignty policies of the institution.
-
-### 3. JWT (JSON Web Tokens) for Authentication
-**Decision**: Stateless authentication mechanism.
-**Why**: Eliminates the need for server-side session storage (Redis/Memcached) for this scale, reducing infrastructure cost and complexity.
+### 📸 Photographer / Admin
+* **Sequential Chunked Uploads:** Upload large image and video files (supporting GB-sized files) smoothly. The custom `UploadProgressWidget` tracks live chunk percentages, retry states, and queue statuses.
+* **Dynamic Folder Management:** Create, rename, and delete folders directly from the dashboard interface.
+* **Admin Dashboard:** Access control panel to manage user privileges (granting/revoking photographer permissions) and audit logs.
+* **Activity Logs:** Audit trail tracking all key photographer operations (uploads, renaming, deletions) with timestamps.
+* **Hero & Featured Assignments:** Set specific gallery photos as home page hero sliders or categorize them under featured sections from within the viewer modal.
 
 ---
 
-## 📊 Scalability, Reliability & Performance
+## 🔒 Security Measures
 
--   **Frontend Optimization**: Implemented **Virtualization** (planned) and **Pagination** (Page Size: 50) to handle folders containing 1000+ images without DOM thrashing.
--   **Concurrent Uploads**: The upload widget uses a queue system to manage file uploads sequentially or in batches, preventing browser hang during multi-GB uploads.
--   **Error Handling**: Comprehensive try-catch blocks in the API ensure that a single corrupt file does not crash the server. 500/400 error codes are gracefully handled by the UI with Toast notifications.
+* **Stateless Authorization:** Secure JSON Web Tokens (JWT) manage credentials. Tokens are automatically attached to outgoing client headers.
+* **Role-Based Access Control (RBAC):** Custom Flask API decorators (`@admin_required`, `@photographer_or_admin_required`) prevent privilege escalation.
+* **Password Hashing:** Implements salted `bcrypt` key derivation for credentials and security answers.
+* **Input Sanitization:** Uses `secure_filename` and strict directory bounding path-validation (`safe_join_base`) to eliminate **Directory Traversal** vulnerabilities.
+* **Account Locking:** Enforces account lockouts (5-minute cooldown) after 5 consecutive failed login attempts to safeguard against brute-force attacks.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Core Engineering
--   **Frontend**: React.js (v18+), Vite (Build Tool), Axios (Network Interceptor pattern).
--   **Backend**: Python Flask (REST APIs), Flask-CORS, Flask-JWT-Extended.
--   **Security**: Bcrypt (Key Derivation), JWT (Access Tokens).
--   **Infrastructure**: Local Development / Campus VM Deployment.
-
-### Data & I/O
--   **Database**: SQLite (SQLAlchemy ORM).
--   **Storage**: On-premise Network Attached Storage (NAS).
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Vite, Axios, React Icons, React Router DOM |
+| **Backend** | Python 3, Flask, Flask-CORS, Flask-JWT-Extended, Flask-Bcrypt |
+| **Database** | SQLite, SQLAlchemy ORM |
+| **Styling** | Vanilla CSS (Harmonious Dark Theme, responsive layouts, micro-animations) |
 
 ---
 
 ## 🚀 Setup & Local Development
 
-### 1. Backend: Authentication Service
-```bash
-cd src
-# Install dependencies
-pip install flask flask_sqlalchemy flask_bcrypt flask_jwt_extended python-dotenv flask_cors
+### Prerequisites
+* Python 3.10+ installed
+* Node.js 18+ installed
 
-# Run Auth Service (Port 5000)
-python auth.py
-```
+### 1. Backend Server Setup
+1. Navigate to the root of the project directory where the `requirements.txt` file is located:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Navigate to the `my-react-app` directory and create a `.env` file (or duplicate `.env` to configure settings):
+   ```env
+   DATABASE_URL=sqlite:///site.db
+   JWT_SECRET_KEY=your_super_secret_jwt_key
+   VITE_API_BASE_URL=http://localhost:8087
+   VITE_AUTH_BASE_URL=http://localhost:8087
+   IMAGES_PATH=./Images
+   ```
+3. Run the unified backend server:
+   ```bash
+   python src/server.py
+   ```
+   *The server will initialize on `http://localhost:8087` and auto-seed default folders, schema models, and the primary admin account.*
 
-### 2. Backend: Gallery (Media) Service
-```bash
-# In a new terminal
-cd src
-# Run Media Service (Port 8087)
-python test.py
-```
-
-### 3. Frontend
-```bash
-# In root directory
-npm install
-npm run dev
-```
-
----
-
-## 🧪 Testing & Validation
-
--   **Unit Testing**: Manual validation of API endpoints via Postman.
--   **Integration Testing**: Verified the "Upload -> Rename -> Delete" lifecycle to ensure file system consistency.
--   **Security Testing**: Validated `admin_required` decorators to prevent privilege escalation on sensitive endpoints.
-
----
-
-## 🔮 Future Improvements
-
-1.  **Authentication Migration**: Transition to **Clerk** for enterprise-grade identity management, MFA, and social logins.
-2.  **Notification System**: Implement an event-driven email service (SMTP/SendGrid) to notify subscribed users immediately when photographers complete a batch upload.
-3.  **Database Migration**: Move from filesystem traversal to **PostgreSQL** to enable complex queries (e.g., filtering photos by specific event tags or dates).
-4.  **CI/CD**: Specific GitHub Actions to lint (ESLint/Flake8) and build on push.
+### 2. Frontend Development Server Setup
+1. Open a new terminal in the `my-react-app` directory.
+2. Install local npm dependencies:
+   ```bash
+   npm install
+   ```
+3. Launch the hot-reloading development server:
+   ```bash
+   npm run dev
+   ```
+4. Access the application in your browser at `http://localhost:5173`.
 
 ---
 
-## 💡 What I Learned
--   **System Design**: How to structure a full-stack app for maintainability (Service segregation).
--   **Security First**: The importance of sanitizing input paths (`secure_filename`) to prevent Directory Traversal attacks.
--   **React Lifecycle**: Managing state for complex UI interactions like multi-file uploads and floating progress widgets.
--   **REST Principles**: Designing clean, resource-oriented API URLs.
+## 🔑 Seeding & Default Credentials
+
+On initial database boot, the backend automatically seeds a primary administrator account alongside sample photography club members:
+* **Admin Email:** `dharani080905@gmail.com` *(Default config, can be overridden via `ADMIN_EMAIL` env variable)*
+* **Admin Password:** `Admin@123`
+* **Security Answer (Color):** `blue`
 
 ---
 
-*This project represents my ability to identify a real-world problem, design a scalable solution, and implement it using modern engineering practices.*
+## 🔮 Future Roadmap
+
+1. **Authentication Migration:** Transitioning to **Clerk** authentication for enterprise-grade social SSO and Multi-Factor Authentication.
+2. **Notification Subscriptions:** Event-driven email service (SMTP/SendGrid) notifying subscribed students when event photos are published.
+3. **Database Migration:** Upgrading to a PostgreSQL database on production to support complex tagging and search filtering.
+4. **CI/CD Integration:** Automated GitHub Actions pipeline for linting, security audits, and continuous cloud deployments.

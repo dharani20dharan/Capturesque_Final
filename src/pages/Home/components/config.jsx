@@ -9,8 +9,8 @@ let API_BASE_URL = 'http://localhost:8087';
 
 if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) {
   API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-} else if (typeof process !== 'undefined' && process.env?.REACT_APP_API_BASE_URL) {
-  API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+} else if (typeof globalThis.process !== 'undefined' && globalThis.process.env?.REACT_APP_API_BASE_URL) {
+  API_BASE_URL = globalThis.process.env.REACT_APP_API_BASE_URL;
 }
 
 export const ROOT_FOLDER = 'Gallery';
